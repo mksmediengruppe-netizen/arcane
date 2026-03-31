@@ -776,6 +776,19 @@ class AgentLoop:
         try:
             while self._status == LoopStatus.RUNNING:
                 self._iteration += 1
+                # DAY0-FIX3: Hard timeout on entire task (600s = 10 min)
+                _elapsed = time.monotonic() - self._start_time
+                if _elapsed > 600:  # TASK_HARD_TIMEOUT
+                    logger.warning(f"HARD TIMEOUT: Task exceeded 600s (elapsed={_elapsed:.0f}s)")
+                    self._status = LoopStatus.FAILED
+                    await self._emit_event("error", {
+                        "message": f"Hard timeout: task exceeded 600s ({_elapsed:.0f}s elapsed).",
+                    })
+                    if self._artifacts:
+                        await self._emit_event("info", {
+                            "message": f"Timeout. Delivering {len(self._artifacts)} artifact(s) as-is.",
+                        })
+                    break
 
                 if self._iteration > self._max_iterations:
                     self._status = LoopStatus.FAILED
@@ -905,6 +918,24 @@ class AgentLoop:
         and injects feedback to resume the agent loop.
         Falls back to V2 single judge if panel is unavailable.
         """
+        # DAY0-FIX4: Judge budget cap — skip if budget is >70% consumed or >$0.50 spent
+        JUDGE_BUDGET_CAP = 0.50  # Max total cost before skipping judge
+        JUDGE_BUDGET_RATIO = 0.70  # Skip if >70% of budget consumed
+        current_cost = self._router.total_cost
+        budget_limit = getattr(self._router, '_budget_limit', 5.0)
+        budget_ratio = current_cost / budget_limit if budget_limit > 0 else 1.0
+        if current_cost > JUDGE_BUDGET_CAP:
+            logger.info(
+                f"DAY0-FIX4: Judge skipped — total cost ${current_cost:.2f} exceeds "
+                f"judge cap ${JUDGE_BUDGET_CAP:.2f}"
+            )
+            return False
+        if budget_ratio > JUDGE_BUDGET_RATIO:
+            logger.info(
+                f"DAY0-FIX4: Judge skipped — budget {budget_ratio:.0%} consumed "
+                f"(${current_cost:.2f}/${budget_limit:.2f})"
+            )
+            return False
         html_artifacts = [a for a in self._artifacts if a.endswith(('.html', '.htm'))]
         if not html_artifacts or self._iteration < 2:
             return False

@@ -99,6 +99,29 @@ MODELS: dict[str, ModelSpec] = {
         supports_vision=True,
         supports_function_calling=True,
     ),
+    # ── GPT-5.4 Mini/Nano (non-reasoning, stable) ──────────────────────────
+    "gpt-5.4-mini": ModelSpec(
+        id="gpt-5.4-mini",
+        provider=Provider.OPENROUTER,
+        display_name="GPT-5.4 Mini",
+        input_price_per_mtok=0.75,
+        output_price_per_mtok=4.50,
+        cached_input_price_per_mtok=0.1875,
+        max_context=1047576,
+        supports_vision=True,
+        supports_function_calling=True,
+    ),
+    "gpt-5.4-nano": ModelSpec(
+        id="gpt-5.4-nano",
+        provider=Provider.OPENROUTER,
+        display_name="GPT-5.4 Nano",
+        input_price_per_mtok=0.20,
+        output_price_per_mtok=1.20,
+        cached_input_price_per_mtok=0.05,
+        max_context=1047576,
+        supports_vision=False,
+        supports_function_calling=True,
+    ),
 
     # ── Reasoning Models (via OpenRouter) ────────────────────────────────────
 
@@ -203,11 +226,11 @@ ROLES: dict[str, ModelRole] = {
     "classifier": ModelRole(
         name="classifier",
         tiers={
-            Tier.NANO: "gpt-5-nano",
+            Tier.NANO: "gpt-5.4-nano",  # DAY0-FIX1: was gpt-5-nano (reasoning model)
             Tier.FAST: "gpt-4.1-mini",
         },
         fallback_chain={
-            "gpt-5-nano": "gpt-4.1-nano",
+            "gpt-5.4-nano": "gpt-4.1-nano",  # DAY0-FIX1
             "gpt-4.1-nano": "gpt-4.1-mini",
             "gpt-4.1-mini": "gemini-2.5-flash",
         },
@@ -217,14 +240,14 @@ ROLES: dict[str, ModelRole] = {
     "planner": ModelRole(
         name="planner",
         tiers={
-            Tier.FAST: "gpt-5-mini",
+            Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1: was gpt-5-mini (reasoning)
             Tier.STANDARD: "gpt-5",       # OPTIMIZED: was gpt-5.4 ($2.50/$15) → gpt-5 ($1.25/$10) = 50% savings
             Tier.GENIUS: "gpt-5.4",
         },
         fallback_chain={
             "gpt-5.4": "gpt-5",
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5": "gpt-5.4-mini",  # DAY0
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0
             "gemini-2.5-flash": "claude-sonnet-4",
         },
         default_tier=Tier.STANDARD,
@@ -233,14 +256,13 @@ ROLES: dict[str, ModelRole] = {
     "orchestrator": ModelRole(
         name="orchestrator",
         tiers={
-            Tier.FAST: "gpt-5-mini",
-            Tier.STANDARD: "gpt-5",       # OPTIMIZED: was gpt-5.4 ($2.50/$15) → gpt-5 ($1.25/$10) = 50% savings
+            Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1: was gpt-5-mini (reasoning)
+            Tier.STANDARD: "gpt-5.4-mini",  # DAY0-FIX2: was gpt-5 ($1.25/$10, unstable, reasoning)
             Tier.GENIUS: "gpt-5.4",       # Premium users still get GPT-5.4
         },
         fallback_chain={
-            "gpt-5.4": "gpt-5",
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5.4": "gpt-5.4-mini",
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0: skip reasoning models
             "gemini-2.5-flash": "claude-sonnet-4",
         },
         default_tier=Tier.STANDARD,
@@ -249,16 +271,16 @@ ROLES: dict[str, ModelRole] = {
     "coding": ModelRole(
         name="coding",
         tiers={
-            Tier.NANO: "gpt-5-nano",
-            Tier.FAST: "gpt-5-mini",
+            Tier.NANO: "gpt-5.4-nano",  # DAY0-FIX1
+            Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1
             Tier.STANDARD: "claude-sonnet-4",
             Tier.GENIUS: "claude-opus-4",
         },
         fallback_chain={
             "claude-opus-4": "gpt-5.4",
             "gpt-5.4": "gpt-5",
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5": "gpt-5.4-mini",  # DAY0
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0
             "gemini-2.5-flash": "claude-sonnet-4",
         },
         default_tier=Tier.FAST,
@@ -267,13 +289,12 @@ ROLES: dict[str, ModelRole] = {
     "browser": ModelRole(
         name="browser",
         tiers={
-            Tier.FAST: "gpt-5-mini",
-            Tier.STANDARD: "gpt-5",       # OPTIMIZED: was gpt-5.4 → gpt-5
+            Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1
+            Tier.STANDARD: "gpt-5.4-mini",  # DAY0-FIX2: was gpt-5
         },
         fallback_chain={
-            "gpt-5.4": "gpt-5",
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5.4": "gpt-5.4-mini",
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0: skip reasoning
             "gemini-2.5-flash": "claude-sonnet-4",
         },
         default_tier=Tier.STANDARD,
@@ -282,12 +303,11 @@ ROLES: dict[str, ModelRole] = {
     "ssh": ModelRole(
         name="ssh",
         tiers={
-            Tier.FAST: "gpt-5-mini",
-            Tier.STANDARD: "gpt-5",
+            Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1
+            Tier.STANDARD: "gpt-5.4-mini",  # DAY0-FIX2
         },
         fallback_chain={
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0: skip reasoning
             "gemini-2.5-flash": "gpt-4.1-mini",
         },
         default_tier=Tier.FAST,
@@ -296,14 +316,13 @@ ROLES: dict[str, ModelRole] = {
     "qa": ModelRole(
         name="qa",
         tiers={
-            Tier.STANDARD: "gpt-5",
+            Tier.STANDARD: "gpt-5.4-mini",  # DAY0-FIX2: was gpt-5
             Tier.DEEP: "o3",
         },
         fallback_chain={
             "o3": "gpt-5.4",
-            "gpt-5.4": "gpt-5",
-            "gpt-5": "gpt-5-mini",
-            "gpt-5-mini": "gemini-2.5-flash",
+            "gpt-5.4": "gpt-5.4-mini",
+            "gpt-5.4-mini": "gemini-2.5-flash",  # DAY0: skip reasoning
             "gemini-2.5-flash": "claude-sonnet-4",
         },
         default_tier=Tier.STANDARD,
@@ -312,12 +331,12 @@ ROLES: dict[str, ModelRole] = {
     "search": ModelRole(
         name="search",
         tiers={
-            Tier.NANO: "gpt-5-nano",
+            Tier.NANO: "gpt-5.4-nano",  # DAY0-FIX1
             Tier.FAST: "gpt-4.1-mini",
         },
         fallback_chain={
-            "gpt-4.1-mini": "gpt-5-nano",
-            "gpt-5-nano": "gpt-4.1-nano",
+            "gpt-4.1-mini": "gpt-5.4-nano",  # DAY0-FIX1
+            "gpt-5.4-nano": "gpt-4.1-nano",
             "gpt-4.1-nano": "gemini-2.5-flash",
         },
         default_tier=Tier.FAST,

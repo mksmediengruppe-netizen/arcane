@@ -512,6 +512,8 @@ class UnifiedLLMClient:
             "gpt-5-mini": "openai/gpt-5-mini",
             "gpt-5": "openai/gpt-5",
             "gpt-5.4": "openai/gpt-5.4",
+            "gpt-5.4-mini": "openai/gpt-5.4-mini",  # DAY0-FIX1
+            "gpt-5.4-nano": "openai/gpt-5.4-nano",  # DAY0-FIX1
             "o4-mini": "openai/o4-mini",
             "o3": "openai/o3",
             # Anthropic models
