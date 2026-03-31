@@ -46,7 +46,7 @@ class DatabaseConfig:
 @dataclass(frozen=True)
 class RedisConfig:
     host: str = os.getenv("REDIS_HOST", "localhost")
-    port: int = int(os.getenv("REDIS_PORT", "6379"))
+    port: int = int(os.getenv("REDIS_PORT", "6380"))
     password: str = os.getenv("REDIS_PASSWORD", "")
     db: int = int(os.getenv("REDIS_DB", "0"))
 

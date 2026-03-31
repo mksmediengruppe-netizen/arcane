@@ -25,6 +25,7 @@ _cancel_flags: dict[str, bool] = {}
 _message_queues: dict[str, asyncio.Queue] = {}
 _queue_processors: dict[str, asyncio.Task] = {}
 _agent_instances: dict[str, object] = {}  # AgentLoop instances for resume
+_task_queue_instance = None  # Lazy-initialized TaskQueue singleton
 
 
 
@@ -121,18 +122,63 @@ async def _rag_preprocess(user_message: str, config=None) -> str:
 async def start_agent_for_chat(
     chat_id: str,
     user_message: str,
-    user_id: str = "",  # FIX 6: No default user — require explicit user_id
+    user_id: str = "",
     project_id: Optional[str] = None,
     model_strategy: str = "balance",
     premium_images: bool = False,
     design_check: bool = False,
     premium_review: bool = False,
-) -> None:
-    """Start the agent loop for a chat.
-    FIX NEW-006: If an agent is already running for this chat, the new message
-    is queued for sequential processing instead of cancelling the running agent.
+) -> str:
+    """Start the agent loop for a chat via the task queue.
+    
+    Returns the task_id. The worker pool will pick up and execute the task.
+    Falls back to direct execution if Redis is unavailable.
     """
-    # FIX NEW-006: Check if agent is currently running
+    from core.task_queue import TaskPayload, make_task_id
+    
+    task_id = make_task_id()
+    payload = TaskPayload(
+        task_id=task_id,
+        chat_id=chat_id,
+        user_message=user_message,
+        user_id=user_id,
+        project_id=project_id or "",
+        model_strategy=model_strategy,
+        premium_images=premium_images,
+        design_check=design_check,
+        premium_review=premium_review,
+    )
+    
+    try:
+        queue = await _get_task_queue()
+        await queue.enqueue(payload)
+        logger.info(f"Task {task_id} enqueued for chat {chat_id}")
+        # S9: Record agent start
+        try:
+            from api.metrics import record_agent_started
+            record_agent_started(chat_id)
+        except Exception:
+            pass
+        return task_id
+    except Exception as e:
+        logger.warning(f"Redis queue unavailable, falling back to direct execution: {e}")
+        return await _start_agent_direct(
+            chat_id, user_message, user_id, project_id,
+            model_strategy, premium_images, design_check, premium_review,
+        )
+
+
+async def _start_agent_direct(
+    chat_id: str,
+    user_message: str,
+    user_id: str = "",
+    project_id: Optional[str] = None,
+    model_strategy: str = "balance",
+    premium_images: bool = False,
+    design_check: bool = False,
+    premium_review: bool = False,
+) -> str:
+    """Original direct execution path (fallback when Redis unavailable)."""
     if chat_id in _running_agents and not _running_agents[chat_id].done():
         if chat_id not in _message_queues:
             _message_queues[chat_id] = asyncio.Queue(maxsize=10)
@@ -146,19 +192,16 @@ async def start_agent_for_chat(
                 "design_check": design_check,
                 "premium_review": premium_review,
             })
-            logger.info(f"Message queued for busy chat {chat_id} (queue size: {_message_queues[chat_id].qsize()})")
+            logger.info(f"Message queued for busy chat {chat_id}")
             if chat_id not in _queue_processors or _queue_processors[chat_id].done():
                 _queue_processors[chat_id] = asyncio.create_task(_process_queue(chat_id))
-            return
+            return f"direct-{chat_id}"
         except asyncio.QueueFull:
-            logger.warning(f"Message queue full for chat {chat_id}, cancelling current agent")
-    # No agent running or queue full — start fresh
+            logger.warning(f"Message queue full for chat {chat_id}")
     if chat_id in _running_agents:
         await stop_agent_for_chat(chat_id)
     elif chat_id in _agent_instances:
-        logger.info(f"Cleaning stale agent instance for chat {chat_id}")
         _agent_instances.pop(chat_id, None)
-
     _cancel_flags[chat_id] = False
     task = asyncio.create_task(
         _run_agent(chat_id, user_message, user_id, project_id, model_strategy,
@@ -166,12 +209,24 @@ async def start_agent_for_chat(
                    premium_review=premium_review)
     )
     _running_agents[chat_id] = task
-    # S9: Record agent start
     try:
         from api.metrics import record_agent_started
         record_agent_started(chat_id)
     except Exception:
         pass
+    return f"direct-{chat_id}"
+
+
+async def _get_task_queue():
+    """Get or create the task queue singleton."""
+    global _task_queue_instance
+    if _task_queue_instance is None:
+        from core.task_queue import TaskQueue
+        from config.settings import get_config
+        cfg = get_config()
+        _task_queue_instance = TaskQueue(redis_url=cfg.redis.url)
+        await _task_queue_instance.connect()
+    return _task_queue_instance
 
 
 async def stop_agent_for_chat(chat_id: str, user_id: str = "") -> None:
@@ -644,14 +699,31 @@ def _make_emitter(sse_emitter):
 
 
 def get_active_agents() -> dict[str, dict]:
-    """Get status of all active agents."""
+    """Get all active agents (local + Redis tracked)."""
     result = {}
+    # Local agents (fallback mode)
     for chat_id, task in _running_agents.items():
-        agent = _agent_instances.get(chat_id)
-        result[chat_id] = {
-            "running": not task.done(),
-            "state": agent.get_state() if agent and hasattr(agent, "get_state") else {},
-        }
+        if not task.done():
+            result[chat_id] = {
+                "chat_id": chat_id,
+                "status": "running",
+                "source": "local",
+            }
+    # Try Redis pool info
+    try:
+        from core.worker_pool import _pool_instance
+        if _pool_instance and _pool_instance.is_running:
+            for w in _pool_instance.get_workers_info():
+                if w["status"] == "busy" and w["current_chat_id"]:
+                    result[w["current_chat_id"]] = {
+                        "chat_id": w["current_chat_id"],
+                        "task_id": w["current_task_id"],
+                        "worker": w["name"],
+                        "status": "running",
+                        "source": "pool",
+                    }
+    except Exception:
+        pass
     return result
 
 

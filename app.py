@@ -84,11 +84,28 @@ async def lifespan(app: FastAPI):
     from api.rate_limiter import cleanup_old_entries
     asyncio.create_task(cleanup_old_entries())
     logger.info("Rate limiter active")
+    # ═══ WORKER POOL STARTUP ═══
+    try:
+        from core.worker_pool import start_pool
+        pool = await start_pool()
+        logger.info(f"Worker pool started: {pool.max_workers} workers")
+    except Exception as e:
+        logger.warning(f"Worker pool startup failed (falling back to direct execution): {e}")
     yield
 
-    # ═══ GRACEFUL SHUTDOWN (P0 FIX — NEW-009) ═══
-    # Phase 1: Save state of all active agents before cancellation
+    # ═══ GRACEFUL SHUTDOWN (P0 — Worker Pool + Legacy) ═══
     logger.info("ARCANE shutting down — saving agent states...")
+    # Phase 0: Shutdown worker pool (saves all active agent states to Redis)
+    try:
+        from core.worker_pool import shutdown_pool
+        interrupted = await shutdown_pool(timeout=20.0)
+        if interrupted:
+            logger.info(f"Worker pool: {len(interrupted)} task(s) interrupted and saved")
+        else:
+            logger.info("Worker pool: shutdown clean (no active tasks)")
+    except Exception as e:
+        logger.warning(f"Worker pool shutdown error: {e}")
+    # Phase 1: Legacy fallback — save any direct-execution agents
     from api.agent_runner import _running_agents, _agent_instances, stop_agent_for_chat
 
     active_chats = list(_running_agents.keys())
@@ -131,6 +148,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"DB pool close: {e}")
 
+    # Phase 4: Close Redis connection
+    try:
+        from api.agent_runner import _task_queue_instance
+        if _task_queue_instance:
+            await _task_queue_instance.disconnect()
+            logger.info("Redis connection closed")
+    except Exception as e:
+        logger.warning(f"Redis close: {e}")
     logger.info("ARCANE shutdown complete")
 
 
@@ -284,6 +309,13 @@ def create_app() -> FastAPI:
     @application.get("/")
     async def root():
         from api.agent_runner import get_active_agents
+        # Include worker pool stats
+        try:
+            from core.worker_pool import _pool_instance
+            if _pool_instance:
+                status_data["worker_pool"] = _pool_instance.get_pool_stats()
+        except Exception:
+            pass
         return {
             "name": "ARCANE",
             "version": VERSION,
