@@ -1,0 +1,31 @@
+FROM arcane-sandbox:latest
+
+USER root
+
+# Install system deps for weasyprint
+RUN apt-get update -qq && apt-get install -y -qq \
+    libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 \
+    libffi-dev shared-mime-info 2>/dev/null || true && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install missing Python packages (matching Manus sandbox)
+RUN pip3 install --no-cache-dir \
+    markdown fpdf2 reportlab openpyxl \
+    plotly seaborn python-docx python-pptx \
+    tabulate xhtml2pdf pdf2image pdfplumber \
+    httpx aiohttp weasyprint 2>/dev/null; \
+    pip3 install --no-cache-dir \
+    markdown fpdf2 reportlab openpyxl \
+    plotly seaborn python-docx python-pptx \
+    tabulate httpx || true
+
+# Install mermaid CLI
+RUN npm install -g @mermaid-js/mermaid-cli 2>/dev/null || true
+
+# Puppeteer config for mermaid (no-sandbox for Docker)
+RUN echo "{\"args\":[\"--no-sandbox\"]}" > /home/sandbox/puppeteer-config.json && \
+    chmod 644 /home/sandbox/puppeteer-config.json
+
+USER sandbox
+WORKDIR /home/sandbox/workspace
+CMD ["sleep", "infinity"]

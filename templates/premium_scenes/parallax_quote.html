@@ -1,0 +1,28 @@
+<!-- SCENE: parallax.quote.v1 -->
+<section class="relative min-h-[50vh] flex items-center justify-center overflow-hidden">
+  <!-- Parallax Background -->
+  <div class="absolute inset-0 z-0" data-parallax>
+    <img
+      src="{{ABOUT_IMAGE}}"
+      alt="{{HEADLINE}}"
+      class="w-full h-full object-cover scale-110"
+      loading="lazy"
+    />
+    <div class="absolute inset-0 bg-black/60"></div>
+  </div>
+  
+  <!-- Quote Content -->
+  <div class="relative z-10 {{CONTAINER_CLASS}} px-5 md:px-8 py-20 text-center {{REVEAL_CLASS}}">
+    <div class="max-w-3xl mx-auto flex flex-col items-center gap-6">
+      <svg class="w-12 h-12 text-white/30" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983z"/>
+      </svg>
+      <blockquote class="font-serif text-2xl md:text-4xl text-white leading-relaxed italic">
+        {{HEADLINE}}
+      </blockquote>
+      <cite class="text-white/60 text-sm not-italic uppercase tracking-widest">
+        — {{SUBHEADLINE}}
+      </cite>
+    </div>
+  </div>
+</section>

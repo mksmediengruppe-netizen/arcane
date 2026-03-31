@@ -1,0 +1,117 @@
+<!-- SCENE: hero.editorial_split.v1 -->
+<section class="relative {{BG}} overflow-hidden">
+  {{DECORATOR}}
+
+  <!-- Noise texture -->
+  <div class="absolute inset-0 grain-overlay pointer-events-none z-[1]"></div>
+
+  <!-- Subtle grid -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.03]"
+       style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px); background-size: 60px 60px;"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-screen py-24 lg:py-0">
+
+      <!-- Text column -->
+      <div class="flex flex-col gap-7 {{REVEAL_CLASS}} max-w-xl">
+
+        <!-- Kicker -->
+        <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} w-fit uppercase tracking-[0.15em]">
+          <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+          {{KICKER}}
+        </div>
+
+        <!-- Headline -->
+        <h1 class="{{HEADING_CLASS}} text-4xl sm:text-5xl md:text-6xl lg:text-7xl {{TEXT}} leading-[1.05] tracking-tight">
+          {{HEADLINE}}
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="{{BODY_CLASS}} text-lg md:text-xl {{MUTED}} max-w-lg leading-relaxed">
+          {{SUBHEADLINE}}
+        </p>
+
+        <!-- CTA buttons -->
+        <div class="flex flex-wrap gap-3 pt-2">
+          <a href="{{CTA_PRIMARY_HREF}}"
+             class="{{BUTTON_CLASS}} group relative overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <span class="relative z-10">{{CTA_PRIMARY_TEXT}}</span>
+            <span class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
+          </a>
+          <a href="{{CTA_SECONDARY_HREF}}"
+             class="inline-flex items-center gap-2 px-5 py-3 text-sm font-medium {{TEXT}} hover:opacity-70 transition-all duration-300 group">
+            {{CTA_SECONDARY_TEXT}}
+            <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </a>
+        </div>
+
+        <!-- Trust badges -->
+        <div class="flex flex-wrap items-center gap-5 pt-4 {{MUTED}} text-sm">
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{TRUST_1}}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{TRUST_2}}
+          </span>
+          <span class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{TRUST_3}}
+          </span>
+        </div>
+
+        <!-- Social proof mini -->
+        <div class="flex items-center gap-3 pt-2">
+          <div class="flex -space-x-2.5">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 border-2 {{BORDER}} shadow-sm"></div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 border-2 {{BORDER}} shadow-sm"></div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 border-2 {{BORDER}} shadow-sm"></div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-600 border-2 {{BORDER}} shadow-sm"></div>
+          </div>
+          <span class="text-xs {{MUTED}}">{{SOCIAL_PROOF}}</span>
+        </div>
+
+      </div>
+
+      <!-- Media column -->
+      <div class="relative {{REVEAL_CLASS}}">
+        <!-- Glow behind image -->
+        <div class="absolute -inset-8 bg-gradient-to-br {{ACCENT_BG}} rounded-3xl blur-3xl opacity-20 pointer-events-none"></div>
+
+        <div class="relative overflow-hidden {{MEDIA_CLASS}} w-full shadow-2xl group">
+          <img
+            src="{{HERO_MEDIA_URL}}"
+            alt="{{HEADLINE}}"
+            class="{{MEDIA_CLASS}} w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            loading="eager"
+          />
+          <!-- Subtle overlay on hover -->
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
+        </div>
+
+        <!-- Floating accent card -->
+        <div class="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 {{SURFACE_CLASS}} p-4 md:p-5 shadow-xl border {{BORDER}} backdrop-blur-sm max-w-[220px]">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div>
+              <p class="text-xs {{MUTED}} mb-0.5">{{FLOAT_CARD_LABEL}}</p>
+              <p class="text-2xl font-bold {{TEXT}}">{{FLOAT_CARD_VALUE}}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top-right badge -->
+        <div class="absolute -top-3 -right-3 md:-top-4 md:-right-4 {{SURFACE_CLASS}} px-3 py-1.5 shadow-lg border {{BORDER}} rounded-full text-xs font-semibold {{ACCENT}}">
+          ★ {{TOP_BADGE}}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Decorative side accent line -->
+  <div class="absolute left-0 top-1/4 bottom-1/4 w-px bg-gradient-to-b from-transparent {{ACCENT_BG}} to-transparent opacity-30 hidden lg:block"></div>
+</section>

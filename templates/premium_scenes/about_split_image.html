@@ -1,0 +1,49 @@
+<!-- SCENE: about.split_image.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden" id="about">
+  {{DECORATOR}}
+  
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <div class="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+      
+      <!-- Image side -->
+      <div class="relative {{REVEAL_CLASS}}">
+        <div class="relative rounded-2xl overflow-hidden aspect-[4/5]">
+          <img
+            src="{{ABOUT_IMAGE}}"
+            alt="{{HEADLINE}}"
+            class="w-full h-full object-cover img-reveal"
+            loading="lazy"
+          />
+        </div>
+        <!-- Floating accent card -->
+        <div class="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 {{ACCENT_BG}} text-white rounded-2xl p-4 md:p-6 shadow-xl">
+          <span class="block text-2xl md:text-3xl font-black">{{FLOAT_CARD_VALUE}}</span>
+          <span class="text-xs md:text-sm opacity-80">{{FLOAT_CARD_LABEL}}</span>
+        </div>
+      </div>
+      
+      <!-- Text side -->
+      <div class="flex flex-col gap-6 {{REVEAL_CLASS}}">
+        <span class="inline-block text-xs font-medium {{ACCENT}} uppercase tracking-widest">О нас</span>
+        <h2 class="{{HEADING_CLASS}} text-3xl md:text-4xl {{TEXT}} leading-tight">
+          {{HEADLINE}}
+        </h2>
+        <p class="{{BODY_CLASS}} text-base {{MUTED}} leading-relaxed">
+          {{SUBHEADLINE}}
+        </p>
+        
+        <!-- Feature highlights -->
+        <div class="grid grid-cols-2 gap-4 pt-4">
+          {{ABOUT_FEATURES_HTML}}
+        </div>
+        
+        <div class="pt-2">
+          <a href="{{CTA_PRIMARY_HREF}}" class="{{BUTTON_CLASS}}">
+            {{CTA_PRIMARY_TEXT}}
+          </a>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</section>

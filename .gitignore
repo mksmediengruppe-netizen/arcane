@@ -1,0 +1,67 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+.next/
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Sandbox artifacts
+/workspace/
+/sandbox/
+*.bak.*
+*.bak
+
+# Backup files from refactoring
+*.bak
+*.bak2
+*.bak_*
+arcane.db
+cache/
+check_costs*.py
+check_usage*.py
+fix_*.py
+test_rag_server.py
+*.bak*
+core.bak.*/
+*.pyc
+data/

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PAGE_TITLE}}</title>
+    <meta name="description" content="{{META_DESCRIPTION}}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    <style>
+        :root {
+            --primary: #8B7355;
+            --primary-light: #A68B6B;
+            --bg: #F5F2ED;
+            --bg-alt: #EDEAE4;
+            --surface: #FFFFFF;
+            --text: #1C1917;
+            --text-secondary: #57534E;
+            --text-muted: #A8A29E;
+            --border: rgba(28,25,23,0.08);
+            --font-heading: 'Outfit', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+        img { max-width: 100%; height: auto; display: block; }
+
+        /* ── NAVBAR: Ultra-minimal ── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 24px 0;
+            transition: all 0.5s ease;
+        }
+        .navbar.scrolled {
+            background: rgba(245,242,237,0.95);
+            backdrop-filter: blur(16px);
+            padding: 12px 0;
+        }
+        .nav-inner {
+            max-width: 1100px; margin: 0 auto; padding: 0 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav-logo {
+            font-family: var(--font-heading);
+            font-size: 1.1rem; font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { font-size: 0.8rem; font-weight: 400; color: var(--text-secondary); transition: color 0.3s; }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            padding: 8px 20px;
+            border: 1px solid var(--text);
+            font-size: 0.75rem !important; font-weight: 500 !important;
+            letter-spacing: 0.05em !important;
+            transition: all 0.3s;
+        }
+        .nav-cta:hover { background: var(--text); color: var(--bg); }
+        .hamburger { display: none; flex-direction: column; gap: 6px; cursor: pointer; padding: 8px; }
+        .hamburger span { width: 20px; height: 1px; background: var(--text); transition: all 0.3s; }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+        .mobile-menu {
+            display: none; position: fixed; inset: 0;
+            background: var(--bg); z-index: 999;
+            flex-direction: column; justify-content: center; align-items: center; gap: 32px;
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 300; }
+
+        /* ── HERO: Full-width image with minimal text overlay at bottom ── */
+        .hero {
+            position: relative;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .hero-img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .hero-content {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 64px 32px;
+            background: linear-gradient(to top, rgba(245,242,237,1) 0%, rgba(245,242,237,0.8) 40%, transparent 100%);
+        }
+        .hero-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .hero h1 {
+            font-family: var(--font-heading);
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 300; line-height: 1.2;
+            max-width: 600px;
+        }
+        .hero h1 strong { font-weight: 600; }
+        .hero-right {
+            text-align: right;
+        }
+        .hero-desc {
+            font-size: 0.9rem; line-height: 1.7;
+            color: var(--text-secondary);
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+        .hero-cta {
+            display: inline-block;
+            padding: 12px 28px;
+            border: 1px solid var(--text);
+            font-size: 0.8rem; font-weight: 500;
+            transition: all 0.3s;
+        }
+        .hero-cta:hover { background: var(--text); color: var(--bg); }
+
+        /* ── INTRO TEXT ── */
+        .intro {
+            padding: 128px 32px;
+            max-width: 800px; margin: 0 auto;
+            text-align: center;
+        }
+        .intro-eyebrow {
+            font-family: var(--font-heading);
+            font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.2em; font-weight: 500;
+            color: var(--primary); margin-bottom: 20px;
+        }
+        .intro h2 {
+            font-family: var(--font-heading);
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            font-weight: 300; line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        .intro h2 strong { color: var(--text); font-weight: 600; }
+
+        /* ── SERVICES: Asymmetric grid with large images ── */
+        .services { padding: 0 32px 128px; }
+        .services-inner { max-width: 1100px; margin: 0 auto; }
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 16px;
+        }
+        .service-item {
+            position: relative;
+            overflow: hidden;
+        }
+        .service-item:nth-child(1) { grid-row: span 2; }
+        .service-item img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            transition: transform 1s cubic-bezier(0.16,1,0.3,1);
+        }
+        .service-item:hover img { transform: scale(1.04); }
+        .service-item-text {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 32px;
+            background: linear-gradient(to top, rgba(28,25,23,0.7) 0%, transparent 100%);
+            color: #fff;
+        }
+        .service-item h3 {
+            font-family: var(--font-heading);
+            font-size: 1.2rem; font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .service-item p { font-size: 0.8rem; opacity: 0.8; }
+        .service-item .price {
+            font-family: var(--font-heading);
+            font-size: 1rem; font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* ── ABOUT: Text + Image side by side, very clean ── */
+        .about {
+            padding: 128px 32px;
+            background: var(--bg-alt);
+        }
+        .about-inner {
+            max-width: 1100px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 80px; align-items: center;
+        }
+        .about-text {}
+        .about-eyebrow {
+            font-family: var(--font-heading);
+            font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.2em; font-weight: 500;
+            color: var(--primary); margin-bottom: 16px;
+        }
+        .about-text h2 {
+            font-family: var(--font-heading);
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            font-weight: 600; line-height: 1.3;
+            margin-bottom: 20px;
+        }
+        .about-text p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.9; margin-bottom: 12px; }
+        .about-image { overflow: hidden; aspect-ratio: 3/4; }
+        .about-image img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ── TESTIMONIALS: Minimal cards ── */
+        .testimonials { padding: 128px 32px; }
+        .testimonials-inner { max-width: 1100px; margin: 0 auto; }
+        .testimonials-header { margin-bottom: 56px; }
+        .testimonials-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+        .testimonial-card {
+            padding: 40px;
+            border: 1px solid var(--border);
+        }
+        .testimonial-card p {
+            font-size: 1rem; line-height: 1.8;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        .testimonial-card .author { font-family: var(--font-heading); font-weight: 600; font-size: 0.85rem; }
+        .testimonial-card .role { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* ── CTA ── */
+        .cta-section {
+            padding: 128px 32px;
+            background: var(--text);
+            color: var(--bg);
+            text-align: center;
+        }
+        .cta-inner { max-width: 600px; margin: 0 auto; }
+        .cta-inner h2 {
+            font-family: var(--font-heading);
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            font-weight: 300; line-height: 1.3;
+            margin-bottom: 20px;
+        }
+        .cta-inner h2 strong { font-weight: 600; }
+        .cta-inner p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 36px; }
+        .cta-btn {
+            display: inline-block;
+            padding: 14px 36px;
+            border: 1px solid var(--bg);
+            color: var(--bg);
+            font-size: 0.8rem; font-weight: 500;
+            transition: all 0.3s;
+        }
+        .cta-btn:hover { background: var(--bg); color: var(--text); }
+        .contact-row {
+            display: flex; justify-content: center; gap: 48px;
+            margin-top: 64px;
+        }
+        .contact-item { text-align: center; }
+        .contact-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 4px; }
+        .contact-value { font-family: var(--font-heading); font-weight: 400; font-size: 0.9rem; }
+
+        .footer {
+            padding: 32px 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .reveal { opacity: 0; transform: translateY(24px); }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .hero-inner { flex-direction: column; align-items: flex-start; gap: 24px; }
+            .hero-right { text-align: left; }
+            .services-grid { grid-template-columns: 1fr; }
+            .services-grid .service-item:nth-child(1) { grid-row: span 1; }
+            .about-inner { grid-template-columns: 1fr; gap: 40px; }
+            .testimonials-grid { grid-template-columns: 1fr; }
+            .contact-row { flex-direction: column; gap: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+            <div class="nav-links">
+                <a href="#services">{{NAV_SERVICES}}</a>
+                <a href="#about">{{NAV_ABOUT}}</a>
+                <a href="#reviews">{{NAV_REVIEWS}}</a>
+                <a href="tel:{{PHONE}}" class="nav-cta">{{NAV_CONTACT}}</a>
+            </div>
+            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#services">{{NAV_SERVICES}}</a>
+        <a href="#about">{{NAV_ABOUT}}</a>
+        <a href="#reviews">{{NAV_REVIEWS}}</a>
+        <a href="tel:{{PHONE}}">{{PHONE}}</a>
+    </div>
+
+    <section class="hero">
+        <img class="hero-img" src="{{HERO_IMAGE_URL}}" alt="{{HERO_IMAGE_ALT}}" loading="eager">
+        <div class="hero-content">
+            <div class="hero-inner">
+                <h1>{{HERO_TITLE}}</h1>
+                <div class="hero-right">
+                    <p class="hero-desc">{{HERO_DESCRIPTION}}</p>
+                    <a href="#contact" class="hero-cta">{{CTA_PRIMARY}}</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="intro">
+        <div class="intro-eyebrow reveal">{{ABOUT_LABEL}}</div>
+        <h2 class="reveal">{{INTRO_TEXT}}</h2>
+    </section>
+
+    <section class="services" id="services">
+        <div class="services-inner">
+            <div class="services-grid">
+                {{SERVICE_ITEMS}}
+                <!-- Example:
+                <div class="service-item reveal">
+                    <img src="{{SERVICE_IMG_1}}" alt="" loading="lazy">
+                    <div class="service-item-text">
+                        <h3>Service Name</h3>
+                        <p>Brief description</p>
+                        <div class="price">от 5 000 ₽</div>
+                    </div>
+                </div>
+                <div class="service-item reveal">
+                    <img src="{{SERVICE_IMG_2}}" alt="" loading="lazy">
+                    <div class="service-item-text">
+                        <h3>Service Name</h3>
+                        <p>Brief description</p>
+                    </div>
+                </div>
+                <div class="service-item reveal">
+                    <img src="{{SERVICE_IMG_3}}" alt="" loading="lazy">
+                    <div class="service-item-text">
+                        <h3>Service Name</h3>
+                        <p>Brief description</p>
+                    </div>
+                </div>
+                -->
+            </div>
+        </div>
+    </section>
+
+    <section class="about" id="about">
+        <div class="about-inner">
+            <div class="about-text">
+                <div class="about-eyebrow reveal">{{ABOUT_LABEL}}</div>
+                <h2 class="reveal">{{ABOUT_TITLE}}</h2>
+                <p class="reveal">{{ABOUT_TEXT}}</p>
+            </div>
+            <div class="about-image reveal">
+                <img src="{{ABOUT_IMAGE_URL}}" alt="{{ABOUT_IMAGE_ALT}}" loading="lazy">
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials" id="reviews">
+        <div class="testimonials-inner">
+            <div class="testimonials-header">
+                <div class="intro-eyebrow reveal">{{REVIEWS_LABEL}}</div>
+            </div>
+            <div class="testimonials-grid">
+                {{TESTIMONIAL_CARDS}}
+                <!-- Example:
+                <div class="testimonial-card reveal">
+                    <p>"Review text."</p>
+                    <div class="author">Name</div>
+                    <div class="role">Role</div>
+                </div>
+                -->
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="contact">
+        <div class="cta-inner">
+            <h2 class="reveal">{{CTA_TITLE}}</h2>
+            <p class="reveal">{{CTA_DESCRIPTION}}</p>
+            <a href="tel:{{PHONE}}" class="cta-btn reveal">{{CTA_PHONE_TEXT}}: {{PHONE}}</a>
+            <div class="contact-row reveal">
+                <div class="contact-item"><div class="contact-label">{{LABEL_ADDRESS}}</div><div class="contact-value">{{ADDRESS}}</div></div>
+                <div class="contact-item"><div class="contact-label">{{LABEL_PHONE}}</div><div class="contact-value">{{PHONE}}</div></div>
+                <div class="contact-item"><div class="contact-label">{{LABEL_HOURS}}</div><div class="contact-value">{{HOURS}}</div></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer"><div>&copy; 2026 {{BRAND_NAME}}. {{FOOTER_TEXT}}</div></footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+        }, { passive: true });
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobileMenu');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('open');
+            document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+        });
+        mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            hamburger.classList.remove('active'); mobileMenu.classList.remove('open'); document.body.style.overflow = '';
+        }));
+
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+        gsap.timeline({ defaults: { ease: 'power2.out' } })
+            .from('.hero-img', { scale: 1.1, duration: 1.5, delay: 0.2 })
+            .from('.hero h1', { opacity: 0, y: 30, duration: 0.8 }, '-=0.8')
+            .from('.hero-desc', { opacity: 0, y: 20, duration: 0.6 }, '-=0.4')
+            .from('.hero-cta', { opacity: 0, y: 15, duration: 0.5 }, '-=0.3');
+
+        gsap.utils.toArray('.reveal').forEach((el, i) => {
+            gsap.to(el, {
+                opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
+                delay: el.closest('.services-grid, .testimonials-grid, .contact-row') ? (i % 3) * 0.15 : 0,
+                scrollTrigger: { trigger: el, start: 'top 88%' }
+            });
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const t = link.getAttribute('href');
+                if (t && t !== '#') gsap.to(window, { duration: 1, scrollTo: { y: t, offsetY: 80 }, ease: 'power2.inOut' });
+            });
+        });
+    </script>
+</body>
+</html>

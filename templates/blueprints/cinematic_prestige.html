@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{BRAND_NAME}} — {{TAGLINE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   CINEMATIC PRESTIGE — Full-screen immersive storytelling
+   Inspired by: Tesla, Porsche, Apple, Gehry Getty Archive
+   Color: Deep black + warm white + single accent
+   Typography: DM Serif Display + Inter
+   Layout: Full-bleed sections, cinematic aspect ratios
+   ═══════════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-dark: #0A0A0A;
+  --bg-light: #F8F6F3;
+  --text-light: #F0EDE8;
+  --text-dark: #1A1A1A;
+  --text-muted-light: rgba(240,237,232,0.5);
+  --text-muted-dark: #8A8580;
+  --accent: {{ACCENT_COLOR|#C4A265}};
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans: 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg-dark);
+  color: var(--text-light);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── NAVIGATION ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.5rem 3rem;
+  mix-blend-mode: difference;
+}
+.nav-logo {
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+}
+.nav-links { display: flex; gap: 2rem; align-items: center; }
+.nav-links a {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+}
+.nav-links a:hover { opacity: 1; }
+
+/* ── HERO: CINEMATIC FULL-SCREEN ── */
+.hero-cinematic {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hero-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10,10,10,0.8) 0%, rgba(10,10,10,0.2) 40%, transparent 70%);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 5rem;
+  max-width: 700px;
+}
+.hero-eyebrow {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: var(--accent);
+}
+.hero-title {
+  font-family: var(--serif);
+  font-size: clamp(3rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+.hero-subtitle {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-muted-light);
+  margin-bottom: 2.5rem;
+  max-width: 500px;
+}
+.hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--bg-dark);
+  background: var(--accent);
+  padding: 1rem 2.5rem;
+  text-decoration: none;
+  transition: all 0.4s;
+}
+.hero-btn:hover { background: var(--text-light); }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.stat-item {
+  padding: 3rem;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+.stat-item:last-child { border-right: none; }
+.stat-number {
+  font-family: var(--serif);
+  font-size: 2.5rem;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.stat-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted-light);
+}
+
+/* ── STORY SECTION (LIGHT) ── */
+.story-section {
+  background: var(--bg-light);
+  color: var(--text-dark);
+  padding: 8rem 5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: center;
+}
+.story-visual {
+  position: relative;
+  aspect-ratio: 4/5;
+  overflow: hidden;
+}
+.story-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.story-visual-accent {
+  position: absolute;
+  top: -2rem;
+  right: -2rem;
+  width: 120px;
+  height: 120px;
+  border: 1px solid var(--accent);
+  z-index: -1;
+}
+.story-content {}
+.story-label {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2rem;
+}
+.story-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 2rem;
+  color: var(--text-dark);
+}
+.story-text {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.9;
+  color: var(--text-muted-dark);
+  margin-bottom: 2rem;
+}
+.story-link {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  text-decoration: none;
+  border-bottom: 1px solid var(--text-dark);
+  padding-bottom: 0.3rem;
+  transition: all 0.3s;
+}
+.story-link:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── FEATURES / SERVICES (DARK) ── */
+.features-dark {
+  padding: 8rem 5rem;
+  background: var(--bg-dark);
+}
+.features-header {
+  text-align: center;
+  margin-bottom: 5rem;
+}
+.features-label {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+}
+.features-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3vw, 3rem);
+  font-weight: 400;
+  color: var(--text-light);
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.feature-card {
+  padding: 3rem;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.4s;
+}
+.feature-card:hover {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--accent);
+}
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  color: var(--accent);
+}
+.feature-name {
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: var(--text-light);
+}
+.feature-desc {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text-muted-light);
+}
+
+/* ── FULL-BLEED IMAGE ── */
+.full-bleed {
+  height: 70vh;
+  position: relative;
+  overflow: hidden;
+}
+.full-bleed img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.full-bleed-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10,10,10,0.3);
+}
+.full-bleed-text {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 4vw, 4rem);
+  font-style: italic;
+  color: var(--text-light);
+  text-align: center;
+  max-width: 600px;
+  line-height: 1.3;
+}
+
+/* ── TESTIMONIALS ── */
+.testimonials-section {
+  padding: 6rem 5rem;
+  background: var(--bg-light);
+  color: var(--text-dark);
+}
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3rem;
+}
+.testimonial-card {
+  padding: 3rem;
+  border: 1px solid #D4CFC8;
+}
+.testimonial-text {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-dark);
+  margin-bottom: 2rem;
+}
+.testimonial-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.testimonial-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.testimonial-name {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+.testimonial-role {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--text-muted-dark);
+}
+
+/* ── CTA SECTION ── */
+.cta-section {
+  padding: 8rem 5rem;
+  text-align: center;
+  background: var(--bg-dark);
+}
+.cta-title {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 400;
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+.cta-subtitle {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--text-muted-light);
+  margin-bottom: 3rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--bg-dark);
+  background: var(--accent);
+  padding: 1.2rem 3rem;
+  text-decoration: none;
+  transition: all 0.4s;
+}
+.cta-btn:hover { background: var(--text-light); }
+.cta-contact-info {
+  margin-top: 3rem;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--text-muted-light);
+}
+.cta-contact-info a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ── FOOTER ── */
+.footer-dark {
+  padding: 2rem 5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg-dark);
+}
+.footer-brand {
+  font-family: var(--serif);
+  font-size: 0.9rem;
+  color: var(--text-muted-light);
+}
+.footer-copy {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--text-muted-light);
+}
+
+/* ── ANIMATIONS ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .hero-content { padding: 3rem; }
+  .stats-bar { grid-template-columns: repeat(2, 1fr); }
+  .story-section { grid-template-columns: 1fr; padding: 5rem 3rem; gap: 3rem; }
+  .features-grid { grid-template-columns: 1fr; }
+  .features-dark { padding: 5rem 3rem; }
+  .testimonials-grid { grid-template-columns: 1fr; }
+  .testimonials-section { padding: 4rem 3rem; }
+  .cta-section { padding: 5rem 3rem; }
+  .nav { padding: 1rem 2rem; }
+  .footer-dark { padding: 2rem; flex-direction: column; gap: 1rem; }
+}
+@media (max-width: 640px) {
+  .hero-content { padding: 2rem 1.5rem; }
+  .hero-title { font-size: 2.5rem; }
+  .stats-bar { grid-template-columns: 1fr 1fr; }
+  .stat-item { padding: 2rem 1rem; }
+  .story-section { padding: 3rem 1.5rem; }
+  .features-dark { padding: 3rem 1.5rem; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+  <div class="nav-links">
+    <a href="#story">{{NAV_ABOUT|About}}</a>
+    <a href="#features">{{NAV_SERVICES|Services}}</a>
+    <a href="#testimonials">{{NAV_REVIEWS|Reviews}}</a>
+    <a href="#cta">{{NAV_CTA|Contact}}</a>
+  </div>
+</nav>
+
+<!-- HERO: CINEMATIC -->
+<section class="hero-cinematic">
+  <div class="hero-bg">
+    <img src="{{HERO_IMAGE_URL}}" alt="{{BRAND_NAME}}" loading="eager">
+  </div>
+  <div class="hero-content">
+    <span class="hero-eyebrow">{{HERO_EYEBROW}}</span>
+    <h1 class="hero-title">{{HERO_TITLE}}</h1>
+    <p class="hero-subtitle">{{HERO_SUBTITLE}}</p>
+    <a href="#cta" class="hero-btn">{{HERO_CTA_TEXT|Get Started}}</a>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-number">{{STAT_1_NUMBER}}</div>
+    <div class="stat-label">{{STAT_1_LABEL}}</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">{{STAT_2_NUMBER}}</div>
+    <div class="stat-label">{{STAT_2_LABEL}}</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">{{STAT_3_NUMBER}}</div>
+    <div class="stat-label">{{STAT_3_LABEL}}</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">{{STAT_4_NUMBER}}</div>
+    <div class="stat-label">{{STAT_4_LABEL}}</div>
+  </div>
+</div>
+
+<!-- STORY (LIGHT) -->
+<section class="story-section" id="story">
+  <div class="story-visual reveal">
+    <img src="{{STORY_IMAGE_URL}}" alt="{{BRAND_NAME}} Story" loading="lazy">
+    <div class="story-visual-accent"></div>
+  </div>
+  <div class="story-content reveal">
+    <span class="story-label">{{STORY_LABEL|Our Story}}</span>
+    <h2 class="story-title">{{STORY_TITLE}}</h2>
+    <p class="story-text">{{STORY_TEXT_1}}</p>
+    <p class="story-text">{{STORY_TEXT_2}}</p>
+    <a href="#features" class="story-link">{{STORY_CTA|Explore Our Services}}</a>
+  </div>
+</section>
+
+<!-- FEATURES (DARK) -->
+<section class="features-dark" id="features">
+  <div class="features-header reveal">
+    <div class="features-label">{{FEATURES_LABEL|What We Offer}}</div>
+    <h2 class="features-title">{{FEATURES_TITLE}}</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_1_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_1_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_1_DESC}}</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_2_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_2_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_2_DESC}}</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_3_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_3_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_3_DESC}}</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_4_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_4_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_4_DESC}}</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_5_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_5_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_5_DESC}}</div>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-icon">{{FEATURE_6_ICON|◆}}</div>
+      <div class="feature-name">{{FEATURE_6_NAME}}</div>
+      <div class="feature-desc">{{FEATURE_6_DESC}}</div>
+    </div>
+  </div>
+</section>
+
+<!-- FULL-BLEED IMAGE -->
+<section class="full-bleed">
+  <img src="{{FULLBLEED_IMAGE_URL}}" alt="{{BRAND_NAME}}" loading="lazy">
+  <div class="full-bleed-overlay">
+    <div class="full-bleed-text">{{FULLBLEED_QUOTE}}</div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS (LIGHT) -->
+<section class="testimonials-section" id="testimonials">
+  <div class="testimonials-grid">
+    <div class="testimonial-card reveal">
+      <div class="testimonial-text">"{{REVIEW_1_TEXT}}"</div>
+      <div class="testimonial-meta">
+        <img src="{{REVIEW_1_AVATAR}}" alt="{{REVIEW_1_NAME}}" class="testimonial-avatar">
+        <div>
+          <div class="testimonial-name">{{REVIEW_1_NAME}}</div>
+          <div class="testimonial-role">{{REVIEW_1_ROLE}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card reveal">
+      <div class="testimonial-text">"{{REVIEW_2_TEXT}}"</div>
+      <div class="testimonial-meta">
+        <img src="{{REVIEW_2_AVATAR}}" alt="{{REVIEW_2_NAME}}" class="testimonial-avatar">
+        <div>
+          <div class="testimonial-name">{{REVIEW_2_NAME}}</div>
+          <div class="testimonial-role">{{REVIEW_2_ROLE}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="cta">
+  <div class="reveal">
+    <h2 class="cta-title">{{CTA_TITLE}}</h2>
+    <p class="cta-subtitle">{{CTA_SUBTITLE}}</p>
+    <a href="tel:{{PHONE}}" class="cta-btn">{{CTA_BUTTON_TEXT|Contact Us}}</a>
+    <div class="cta-contact-info">
+      {{ADDRESS}} · <a href="tel:{{PHONE}}">{{PHONE}}</a> · <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer-dark">
+  <div class="footer-brand">{{BRAND_NAME}}</div>
+  <div class="footer-copy">© 2024 {{BRAND_NAME}}. All rights reserved.</div>
+</footer>
+
+<script>
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

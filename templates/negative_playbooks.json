@@ -1,0 +1,50 @@
+{
+  "npm_without_nvm": {
+    "pattern": "npm install .* on remote server without nvm",
+    "error_count": 17,
+    "common_error": "EACCES: permission denied",
+    "fix": "Always use nvm: nvm install --lts && nvm use --lts && npm install"
+  },
+  "docker_without_dockerignore": {
+    "pattern": "docker build without .dockerignore",
+    "error_count": 8,
+    "common_error": "context too large, timeout",
+    "fix": "Always create .dockerignore before docker build"
+  },
+  "pip_without_venv": {
+    "pattern": "pip install on system python without venv",
+    "error_count": 12,
+    "common_error": "externally-managed-environment",
+    "fix": "Always use python3 -m venv .venv && source .venv/bin/activate first"
+  },
+  "certbot_without_nginx_stop": {
+    "pattern": "certbot standalone while nginx running",
+    "error_count": 6,
+    "common_error": "Problem binding to port 80",
+    "fix": "Use certbot --nginx instead, or stop nginx first"
+  },
+  "apt_without_update": {
+    "pattern": "apt install without apt update first",
+    "error_count": 9,
+    "common_error": "Unable to locate package",
+    "fix": "Always run apt update before apt install"
+  },
+  "mysql_root_no_password": {
+    "pattern": "mysql -u root without -p on fresh install",
+    "error_count": 5,
+    "common_error": "Access denied for user 'root'",
+    "fix": "Use sudo mysql or mysql -u root -p"
+  },
+  "git_push_without_pull": {
+    "pattern": "git push without git pull on shared repo",
+    "error_count": 4,
+    "common_error": "rejected non-fast-forward",
+    "fix": "Always git pull --rebase before push"
+  },
+  "chmod_recursive_root": {
+    "pattern": "chmod -R 777 on production server",
+    "error_count": 3,
+    "common_error": "Security vulnerability",
+    "fix": "Use specific permissions: chmod 755 for dirs, 644 for files"
+  }
+}

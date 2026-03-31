@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{BRAND_NAME}} — {{TAGLINE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   BOUTIQUE HOSPITALITY — Warm, inviting, aspirational
+   Inspired by: Aman Resorts, Soho House, 1 Hotel
+   Color: Warm sand + forest green + cream
+   Typography: Playfair Display + Lato
+   Layout: Full-width hero, card grid, warm tones
+   ═══════════════════════════════════════════════════ */
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #FAF7F2;
+  --bg-warm: #F0EBE1;
+  --bg-dark: #2C3E2D;
+  --text: #2A2A2A;
+  --text-muted: #7A7268;
+  --text-light: #F0EBE1;
+  --accent: {{ACCENT_COLOR|#6B8F71}};
+  --accent-warm: #C4A97D;
+  --border: #DDD5C8;
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans: 'Lato', 'Helvetica Neue', sans-serif;
+}
+
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── NAVIGATION ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 1.2rem 3rem;
+  background: rgba(250, 247, 242, 0.95);
+  backdrop-filter: blur(8px);
+  transition: all 0.4s;
+}
+.nav.scrolled { box-shadow: 0 1px 0 var(--border); }
+.nav-logo {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+}
+.nav-center { display: flex; gap: 2.5rem; }
+.nav-center a {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+.nav-center a:hover { color: var(--text); }
+.nav-cta {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  padding: 0.7rem 1.8rem;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.nav-cta:hover { background: var(--bg-dark); }
+
+/* ── HERO: PANORAMIC ── */
+.hero-panoramic {
+  position: relative;
+  height: 85vh;
+  margin-top: 3.5rem;
+  overflow: hidden;
+}
+.hero-panoramic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-panoramic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(42,42,42,0.6) 100%);
+}
+.hero-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 4rem 5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.hero-text {}
+.hero-eyebrow {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent-warm);
+  margin-bottom: 1rem;
+}
+.hero-title {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+.hero-title em { font-style: italic; }
+.hero-desc {
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 300;
+  color: rgba(255,255,255,0.8);
+  max-width: 500px;
+}
+.hero-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.hero-btn {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: #fff;
+  padding: 1rem 2.5rem;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.hero-btn:hover { background: var(--accent-warm); color: #fff; }
+.hero-rating {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.7);
+}
+.hero-rating span { color: var(--accent-warm); }
+
+/* ── WELCOME STRIP ── */
+.welcome-strip {
+  padding: 5rem;
+  text-align: center;
+  background: var(--bg);
+}
+.welcome-icon {
+  font-size: 1.5rem;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+}
+.welcome-title {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.welcome-text {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 300;
+  line-height: 1.8;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ── ROOMS / SERVICES CARDS ── */
+.rooms-section {
+  padding: 0 5rem 6rem;
+}
+.rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 3rem;
+}
+.rooms-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 400;
+}
+.rooms-link {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 0.2rem;
+}
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+.room-card {
+  background: #fff;
+  overflow: hidden;
+  transition: transform 0.4s, box-shadow 0.4s;
+}
+.room-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+}
+.room-card-image {
+  aspect-ratio: 4/3;
+  overflow: hidden;
+}
+.room-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s;
+}
+.room-card:hover .room-card-image img { transform: scale(1.05); }
+.room-card-body {
+  padding: 2rem;
+}
+.room-card-tag {
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
+}
+.room-card-name {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 0.8rem;
+}
+.room-card-desc {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  line-height: 1.7;
+  margin-bottom: 1.5rem;
+}
+.room-card-price {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.room-card-price-value {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--accent);
+}
+.room-card-price-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ── EXPERIENCE SECTION (DARK GREEN) ── */
+.experience-section {
+  padding: 6rem 5rem;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5rem;
+  align-items: center;
+}
+.experience-content {}
+.experience-label {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent-warm);
+  margin-bottom: 1.5rem;
+}
+.experience-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 2rem;
+}
+.experience-text {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.8;
+  color: rgba(240,235,225,0.7);
+  margin-bottom: 1.5rem;
+}
+.experience-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.experience-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+.experience-feature::before {
+  content: '✓';
+  color: var(--accent-warm);
+  font-weight: 700;
+}
+.experience-image {
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.experience-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── REVIEWS ── */
+.reviews-section {
+  padding: 6rem 5rem;
+  background: var(--bg-warm);
+}
+.reviews-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+.reviews-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3vw, 2.5rem);
+  font-weight: 400;
+}
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+.review-card {
+  background: #fff;
+  padding: 2.5rem;
+  border-radius: 4px;
+}
+.review-stars {
+  color: var(--accent-warm);
+  font-size: 0.9rem;
+  margin-bottom: 1.2rem;
+  letter-spacing: 0.1em;
+}
+.review-text {
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+.review-author {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.review-source {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ── CTA / BOOKING ── */
+.booking-cta {
+  padding: 6rem 5rem;
+  text-align: center;
+  background: var(--bg);
+}
+.booking-cta-title {
+  font-family: var(--serif);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 400;
+  margin-bottom: 1.5rem;
+}
+.booking-cta-text {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  max-width: 500px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+}
+.booking-btn {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent);
+  padding: 1.2rem 3rem;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.booking-btn:hover { background: var(--bg-dark); }
+.booking-contact {
+  margin-top: 2rem;
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.booking-contact a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ── FOOTER ── */
+.footer {
+  padding: 3rem 5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border);
+}
+.footer-brand {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+.footer-links {
+  display: flex;
+  gap: 2rem;
+}
+.footer-links a {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.footer-copy {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+/* ── ANIMATIONS ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(25px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+  .hero-overlay { flex-direction: column; align-items: flex-start; gap: 2rem; padding: 3rem; }
+  .hero-action { align-items: flex-start; }
+  .rooms-grid { grid-template-columns: 1fr; }
+  .rooms-section { padding: 0 3rem 4rem; }
+  .experience-section { grid-template-columns: 1fr; padding: 4rem 3rem; }
+  .reviews-grid { grid-template-columns: 1fr; }
+  .reviews-section { padding: 4rem 3rem; }
+  .welcome-strip { padding: 4rem 3rem; }
+  .booking-cta { padding: 4rem 3rem; }
+  .nav { padding: 1rem 2rem; }
+  .nav-center { display: none; }
+  .footer { flex-direction: column; gap: 1rem; padding: 2rem; }
+}
+@media (max-width: 640px) {
+  .hero-panoramic { height: 70vh; }
+  .hero-overlay { padding: 2rem 1.5rem; }
+  .hero-title { font-size: 2rem; }
+  .rooms-section { padding: 0 1.5rem 3rem; }
+  .experience-section { padding: 3rem 1.5rem; }
+  .experience-features { grid-template-columns: 1fr; }
+  .reviews-section { padding: 3rem 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+  <div class="nav-center">
+    <a href="#rooms">{{NAV_ROOMS|Rooms}}</a>
+    <a href="#experience">{{NAV_EXPERIENCE|Experience}}</a>
+    <a href="#reviews">{{NAV_REVIEWS|Reviews}}</a>
+    <a href="#booking">{{NAV_CONTACT|Contact}}</a>
+  </div>
+  <a href="#booking" class="nav-cta">{{NAV_CTA|Book Now}}</a>
+</nav>
+
+<!-- HERO: PANORAMIC -->
+<section class="hero-panoramic">
+  <img src="{{HERO_IMAGE_URL}}" alt="{{BRAND_NAME}}" loading="eager">
+  <div class="hero-overlay">
+    <div class="hero-text">
+      <span class="hero-eyebrow">{{HERO_EYEBROW}}</span>
+      <h1 class="hero-title">{{HERO_TITLE_LINE1}}<br><em>{{HERO_TITLE_LINE2}}</em></h1>
+      <p class="hero-desc">{{HERO_DESCRIPTION}}</p>
+    </div>
+    <div class="hero-action">
+      <a href="#booking" class="hero-btn">{{HERO_CTA|Book Your Stay}}</a>
+      <div class="hero-rating"><span>★★★★★</span> {{HERO_RATING_TEXT|Rated 4.9 on Google}}</div>
+    </div>
+  </div>
+</section>
+
+<!-- WELCOME -->
+<section class="welcome-strip reveal">
+  <div class="welcome-icon">✦</div>
+  <h2 class="welcome-title">{{WELCOME_TITLE}}</h2>
+  <p class="welcome-text">{{WELCOME_TEXT}}</p>
+</section>
+
+<!-- ROOMS / SERVICES -->
+<section class="rooms-section" id="rooms">
+  <div class="rooms-header reveal">
+    <h2 class="rooms-title">{{ROOMS_TITLE|Our Spaces}}</h2>
+    <a href="#booking" class="rooms-link">{{ROOMS_LINK|View All →}}</a>
+  </div>
+  <div class="rooms-grid">
+    <div class="room-card reveal">
+      <div class="room-card-image">
+        <img src="{{ROOM_1_IMAGE}}" alt="{{ROOM_1_NAME}}" loading="lazy">
+      </div>
+      <div class="room-card-body">
+        <div class="room-card-tag">{{ROOM_1_TAG}}</div>
+        <div class="room-card-name">{{ROOM_1_NAME}}</div>
+        <div class="room-card-desc">{{ROOM_1_DESC}}</div>
+        <div class="room-card-price">
+          <div>
+            <div class="room-card-price-value">{{ROOM_1_PRICE}}</div>
+            <div class="room-card-price-label">{{ROOM_1_PRICE_LABEL|per night}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="room-card reveal">
+      <div class="room-card-image">
+        <img src="{{ROOM_2_IMAGE}}" alt="{{ROOM_2_NAME}}" loading="lazy">
+      </div>
+      <div class="room-card-body">
+        <div class="room-card-tag">{{ROOM_2_TAG}}</div>
+        <div class="room-card-name">{{ROOM_2_NAME}}</div>
+        <div class="room-card-desc">{{ROOM_2_DESC}}</div>
+        <div class="room-card-price">
+          <div>
+            <div class="room-card-price-value">{{ROOM_2_PRICE}}</div>
+            <div class="room-card-price-label">{{ROOM_2_PRICE_LABEL|per night}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="room-card reveal">
+      <div class="room-card-image">
+        <img src="{{ROOM_3_IMAGE}}" alt="{{ROOM_3_NAME}}" loading="lazy">
+      </div>
+      <div class="room-card-body">
+        <div class="room-card-tag">{{ROOM_3_TAG}}</div>
+        <div class="room-card-name">{{ROOM_3_NAME}}</div>
+        <div class="room-card-desc">{{ROOM_3_DESC}}</div>
+        <div class="room-card-price">
+          <div>
+            <div class="room-card-price-value">{{ROOM_3_PRICE}}</div>
+            <div class="room-card-price-label">{{ROOM_3_PRICE_LABEL|per night}}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERIENCE (DARK) -->
+<section class="experience-section" id="experience">
+  <div class="experience-content reveal">
+    <span class="experience-label">{{EXPERIENCE_LABEL|The Experience}}</span>
+    <h2 class="experience-title">{{EXPERIENCE_TITLE}}</h2>
+    <p class="experience-text">{{EXPERIENCE_TEXT}}</p>
+    <div class="experience-features">
+      <div class="experience-feature">{{FEATURE_1}}</div>
+      <div class="experience-feature">{{FEATURE_2}}</div>
+      <div class="experience-feature">{{FEATURE_3}}</div>
+      <div class="experience-feature">{{FEATURE_4}}</div>
+      <div class="experience-feature">{{FEATURE_5}}</div>
+      <div class="experience-feature">{{FEATURE_6}}</div>
+    </div>
+  </div>
+  <div class="experience-image reveal">
+    <img src="{{EXPERIENCE_IMAGE_URL}}" alt="Experience" loading="lazy">
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="reviews-section" id="reviews">
+  <div class="reviews-header reveal">
+    <h2 class="reviews-title">{{REVIEWS_TITLE|What Our Guests Say}}</h2>
+  </div>
+  <div class="reviews-grid">
+    <div class="review-card reveal">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"{{REVIEW_1_TEXT}}"</div>
+      <div class="review-author">{{REVIEW_1_AUTHOR}}</div>
+      <div class="review-source">{{REVIEW_1_SOURCE}}</div>
+    </div>
+    <div class="review-card reveal">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"{{REVIEW_2_TEXT}}"</div>
+      <div class="review-author">{{REVIEW_2_AUTHOR}}</div>
+      <div class="review-source">{{REVIEW_2_SOURCE}}</div>
+    </div>
+    <div class="review-card reveal">
+      <div class="review-stars">★★★★★</div>
+      <div class="review-text">"{{REVIEW_3_TEXT}}"</div>
+      <div class="review-author">{{REVIEW_3_AUTHOR}}</div>
+      <div class="review-source">{{REVIEW_3_SOURCE}}</div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING CTA -->
+<section class="booking-cta" id="booking">
+  <div class="reveal">
+    <h2 class="booking-cta-title">{{CTA_TITLE}}</h2>
+    <p class="booking-cta-text">{{CTA_TEXT}}</p>
+    <a href="tel:{{PHONE}}" class="booking-btn">{{CTA_BUTTON|Reserve Now}}</a>
+    <div class="booking-contact">
+      {{ADDRESS}} · <a href="tel:{{PHONE}}">{{PHONE}}</a> · <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-brand">{{BRAND_NAME}}</div>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+  </div>
+  <div class="footer-copy">© 2024 {{BRAND_NAME}}. All rights reserved.</div>
+</footer>
+
+<script>
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) entry.target.classList.add('visible');
+  });
+}, { threshold: 0.15 });
+reveals.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

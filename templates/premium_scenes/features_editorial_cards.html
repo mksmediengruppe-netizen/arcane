@@ -1,0 +1,71 @@
+<!-- SCENE: features.editorial_cards.v1 -->
+<section class="{{BG}} {{SECTION_PADDING}} relative overflow-hidden">
+  {{DECORATOR}}
+  <!-- Subtle grid background -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.03]"
+       style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
+              linear-gradient(to bottom, currentColor 1px, transparent 1px);
+              background-size: 48px 48px;"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="max-w-xl mb-14 {{REVEAL_CLASS}}">
+      <div class="w-10 h-1 {{ACCENT_BG}} rounded-full mb-5"></div>
+      <h2 class="{{HEADING_CLASS}} text-3xl md:text-5xl {{TEXT}} leading-tight mb-4">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} text-lg {{MUTED}} max-w-lg leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 {{GAP}} {{REVEAL_CLASS}}">
+      {{FEATURES_HTML}}
+    </div>
+
+    <!-- Bottom accent line -->
+    <div class="mt-16 flex items-center gap-4 {{REVEAL_CLASS}}">
+      <div class="h-px flex-1 {{BORDER}}"></div>
+      <span class="{{BODY_CLASS}} text-xs {{MUTED}} uppercase tracking-[0.2em]">
+        {{KICKER}}
+      </span>
+      <div class="h-px flex-1 {{BORDER}}"></div>
+    </div>
+  </div>
+
+  <!-- GSAP scroll-trigger animations -->
+  <style>
+    .feature-card {
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+    }
+    .feature-card .card-icon {
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .feature-card:hover .card-icon {
+      transform: scale(1.15) rotate(-3deg);
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.feature-card').forEach(function(card, i) {
+          gsap.from(card, {
+            scrollTrigger: { trigger: card, start: 'top 88%', toggleActions: 'play none none none' },
+            opacity: 0,
+            y: 40,
+            duration: 0.6,
+            delay: i * 0.12,
+            ease: 'power2.out'
+          });
+        });
+      }
+    });
+  </script>
+</section>

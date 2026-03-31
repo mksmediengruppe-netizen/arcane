@@ -1,0 +1,110 @@
+<!-- SCENE: features.bento_premium.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden" id="services">
+  {{DECORATOR}}
+
+  <!-- Subtle grid background -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.03]"
+       style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px); background-size: 48px 48px;"></div>
+
+  <!-- Noise overlay -->
+  <div class="absolute inset-0 grain-overlay pointer-events-none z-[1]"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+
+    <!-- Section header -->
+    <div class="text-center mb-16 {{REVEAL_CLASS}}">
+      <!-- Kicker -->
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} mb-5 uppercase tracking-[0.15em]">
+        {{KICKER}}
+      </div>
+      <h2 class="{{HEADING_CLASS}} text-3xl sm:text-4xl md:text-5xl {{TEXT}} mb-5 max-w-2xl mx-auto leading-tight">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} text-lg {{MUTED}} max-w-xl mx-auto leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+
+    <!-- Bento grid -->
+    <div class="grid grid-cols-1 md:grid-cols-6 auto-rows-auto {{GAP}} {{REVEAL_CLASS}}">
+
+      <!-- Large featured card (spans 4 cols) -->
+      <div class="md:col-span-4 {{SURFACE_CLASS}} {{BORDER}} border p-8 md:p-10 flex flex-col justify-between gap-6 group hover-lift relative overflow-hidden min-h-[280px]">
+        <!-- Decorative gradient -->
+        <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl {{ACCENT_BG}} opacity-10 rounded-bl-full pointer-events-none group-hover:opacity-20 transition-opacity duration-500"></div>
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br {{ACCENT_BG}} flex items-center justify-center mb-5 shadow-lg">
+            <i data-lucide="{{FEATURE_1_ICON}}" class="w-6 h-6 text-white"></i>
+          </div>
+          <h3 class="{{HEADING_CLASS}} text-xl md:text-2xl {{TEXT}} mb-3">{{FEATURE_1_TITLE}}</h3>
+          <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed max-w-md">{{FEATURE_1_DESC}}</p>
+        </div>
+        <!-- Feature image -->
+        <div class="relative overflow-hidden rounded-xl {{BORDER}} border mt-2">
+          <img src="{{FEATURE_1_IMAGE}}" alt="{{FEATURE_1_TITLE}}" class="w-full h-40 object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+        </div>
+      </div>
+
+      <!-- Tall card (spans 2 cols) -->
+      <div class="md:col-span-2 {{SURFACE_CLASS}} {{BORDER}} border p-7 flex flex-col gap-5 group hover-lift relative overflow-hidden">
+        <div class="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr {{ACCENT_BG}} opacity-10 rounded-tr-full pointer-events-none group-hover:opacity-20 transition-opacity duration-500"></div>
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br {{ACCENT_BG}} flex items-center justify-center shadow-lg">
+          <i data-lucide="{{FEATURE_2_ICON}}" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="{{HEADING_CLASS}} text-lg {{TEXT}}">{{FEATURE_2_TITLE}}</h3>
+        <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed">{{FEATURE_2_DESC}}</p>
+        <!-- Mini stat -->
+        <div class="mt-auto pt-4 border-t {{BORDER}}">
+          <span class="text-2xl font-bold {{TEXT}}" data-counter="{{FEATURE_2_STAT}}">0</span>
+          <span class="text-xs {{MUTED}} ml-1">{{FEATURE_2_STAT_LABEL}}</span>
+        </div>
+      </div>
+
+      <!-- Two medium cards (3 cols each) -->
+      <div class="md:col-span-3 {{SURFACE_CLASS}} {{BORDER}} border p-7 flex flex-col gap-4 group hover-lift relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br {{ACCENT_BG}} opacity-10 rounded-br-full pointer-events-none group-hover:opacity-20 transition-opacity duration-500"></div>
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br {{ACCENT_BG}} flex items-center justify-center shadow-lg">
+          <i data-lucide="{{FEATURE_3_ICON}}" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="{{HEADING_CLASS}} text-lg {{TEXT}}">{{FEATURE_3_TITLE}}</h3>
+        <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed">{{FEATURE_3_DESC}}</p>
+        <!-- Feature image -->
+        <div class="relative overflow-hidden rounded-lg {{BORDER}} border mt-2">
+          <img src="{{FEATURE_3_IMAGE}}" alt="{{FEATURE_3_TITLE}}" class="w-full h-32 object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
+        </div>
+      </div>
+
+      <div class="md:col-span-3 {{SURFACE_CLASS}} {{BORDER}} border p-7 flex flex-col gap-4 group hover-lift relative overflow-hidden">
+        <div class="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl {{ACCENT_BG}} opacity-10 rounded-tl-full pointer-events-none group-hover:opacity-20 transition-opacity duration-500"></div>
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br {{ACCENT_BG}} flex items-center justify-center shadow-lg">
+          <i data-lucide="{{FEATURE_4_ICON}}" class="w-5 h-5 text-white"></i>
+        </div>
+        <h3 class="{{HEADING_CLASS}} text-lg {{TEXT}}">{{FEATURE_4_TITLE}}</h3>
+        <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed">{{FEATURE_4_DESC}}</p>
+        <!-- Inline testimonial -->
+        <div class="mt-auto pt-4 border-t {{BORDER}} flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex-shrink-0"></div>
+          <p class="text-xs {{MUTED}} italic leading-snug">&ldquo;{{FEATURE_4_QUOTE}}&rdquo;</p>
+        </div>
+      </div>
+
+      <!-- Full-width accent card -->
+      <div class="md:col-span-6 {{SURFACE_CLASS}} {{BORDER}} border p-8 flex flex-col md:flex-row items-center gap-8 group hover-lift relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r {{ACCENT_BG}} opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity duration-500"></div>
+        <div class="flex-shrink-0">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br {{ACCENT_BG}} flex items-center justify-center shadow-lg">
+            <i data-lucide="{{FEATURE_5_ICON}}" class="w-7 h-7 text-white"></i>
+          </div>
+        </div>
+        <div class="flex-1">
+          <h3 class="{{HEADING_CLASS}} text-xl {{TEXT}} mb-2">{{FEATURE_5_TITLE}}</h3>
+          <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed">{{FEATURE_5_DESC}}</p>
+        </div>
+        <a href="{{CTA_PRIMARY_HREF}}" class="{{BUTTON_CLASS}} flex-shrink-0 whitespace-nowrap">
+          {{CTA_PRIMARY_TEXT}}
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>

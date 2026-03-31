@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="{{LANG}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PAGE_TITLE}}</title>
+    <meta name="description" content="{{META_DESCRIPTION}}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+    <style>
+        :root {
+            --primary: #FF5722;
+            --primary-light: #FF7043;
+            --accent: #FFEB3B;
+            --bg: #FFFDF5;
+            --bg-alt: #F0ECE3;
+            --surface: #FFFFFF;
+            --text: #1A1A1A;
+            --text-secondary: #555555;
+            --text-muted: #999999;
+            --border: #1A1A1A;
+            --font-heading: 'Syne', sans-serif;
+            --font-body: 'Roboto Mono', monospace;
+            --shadow: 4px 4px 0 #1A1A1A;
+            --shadow-hover: 6px 6px 0 #1A1A1A;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        a { text-decoration: none; color: inherit; }
+        img { max-width: 100%; height: auto; display: block; }
+
+        /* ── NAVBAR: Brutalist with thick border ── */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 12px 0;
+            border-bottom: 3px solid var(--border);
+            background: var(--bg);
+        }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto; padding: 0 24px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .nav-logo {
+            font-family: var(--font-heading);
+            font-size: 1.3rem; font-weight: 800;
+            text-transform: uppercase;
+        }
+        .nav-links { display: flex; gap: 24px; align-items: center; }
+        .nav-links a { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-cta {
+            padding: 8px 20px;
+            background: var(--primary);
+            color: #fff !important;
+            border: 2px solid var(--border);
+            box-shadow: var(--shadow);
+            font-size: 0.75rem !important; font-weight: 500 !important;
+            text-transform: uppercase !important;
+            transition: all 0.2s;
+        }
+        .nav-cta:hover { box-shadow: var(--shadow-hover); transform: translate(-2px, -2px); }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; }
+        .hamburger span { width: 24px; height: 3px; background: var(--text); }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(6px, -6px); }
+        .mobile-menu {
+            display: none; position: fixed; inset: 0;
+            background: var(--accent); z-index: 999;
+            flex-direction: column; justify-content: center; align-items: center; gap: 24px;
+            border: 4px solid var(--border);
+        }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { font-family: var(--font-heading); font-size: 2rem; font-weight: 800; text-transform: uppercase; }
+
+        /* ── HERO: Big bold text with accent background block ── */
+        .hero {
+            padding: 140px 24px 80px;
+            max-width: 1200px; margin: 0 auto;
+        }
+        .hero-grid {
+            display: grid; grid-template-columns: 1.3fr 0.7fr;
+            gap: 32px; align-items: end;
+        }
+        .hero-text {}
+        .hero-label {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--accent);
+            border: 2px solid var(--border);
+            font-size: 0.7rem; font-weight: 500;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            font-family: var(--font-heading);
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 800; line-height: 0.95;
+            text-transform: uppercase;
+            margin-bottom: 24px;
+        }
+        .hero h1 .highlight {
+            display: inline;
+            background: var(--primary);
+            color: #fff;
+            padding: 0 8px;
+        }
+        .hero-desc {
+            font-size: 0.85rem; line-height: 1.7;
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin-bottom: 32px;
+        }
+        .hero-cta {
+            display: inline-block;
+            padding: 14px 36px;
+            background: var(--primary);
+            color: #fff;
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow);
+            font-family: var(--font-heading);
+            font-size: 0.9rem; font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .hero-cta:hover { box-shadow: var(--shadow-hover); transform: translate(-2px, -2px); }
+        .hero-image {
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            aspect-ratio: 3/4;
+        }
+        .hero-image img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ── MARQUEE ── */
+        .marquee {
+            padding: 16px 0;
+            border-top: 3px solid var(--border);
+            border-bottom: 3px solid var(--border);
+            background: var(--accent);
+            overflow: hidden;
+        }
+        .marquee-track {
+            display: flex; gap: 32px;
+            animation: marquee 20s linear infinite;
+            white-space: nowrap;
+        }
+        .marquee-item {
+            font-family: var(--font-heading);
+            font-size: 0.85rem; font-weight: 700;
+            text-transform: uppercase;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .marquee-star { font-size: 1.2rem; }
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* ── SERVICES: Stacked cards with thick borders ── */
+        .services { padding: 96px 24px; }
+        .services-inner { max-width: 1200px; margin: 0 auto; }
+        .section-header { margin-bottom: 48px; }
+        .section-eyebrow {
+            font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.1em; font-weight: 500;
+            color: var(--primary); margin-bottom: 8px;
+        }
+        .section-title {
+            font-family: var(--font-heading);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800; text-transform: uppercase;
+        }
+        .service-stack {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .service-card {
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            background: var(--surface);
+            transition: all 0.2s;
+        }
+        .service-card:hover { box-shadow: var(--shadow-hover); transform: translate(-2px, -2px); }
+        .service-card:nth-child(even) { background: var(--bg-alt); }
+        .service-card .num {
+            font-family: var(--font-heading);
+            font-size: 2.5rem; font-weight: 800;
+            color: var(--primary);
+            line-height: 1; margin-bottom: 12px;
+        }
+        .service-card h3 {
+            font-family: var(--font-heading);
+            font-size: 1.1rem; font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .service-card p { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
+        .service-card .price {
+            margin-top: 16px;
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--accent);
+            border: 2px solid var(--border);
+            font-family: var(--font-heading);
+            font-weight: 700;
+        }
+
+        /* ── ABOUT ── */
+        .about { padding: 96px 24px; background: var(--text); color: var(--bg); }
+        .about-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 48px; align-items: center;
+        }
+        .about-image {
+            border: 3px solid var(--bg);
+            overflow: hidden;
+        }
+        .about-image img { width: 100%; height: 100%; object-fit: cover; }
+        .about-text h2 {
+            font-family: var(--font-heading);
+            font-size: clamp(1.8rem, 3vw, 2.5rem);
+            font-weight: 800; text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .about-text p { font-size: 0.85rem; line-height: 1.7; color: var(--text-muted); margin-bottom: 12px; }
+
+        /* ── TESTIMONIALS ── */
+        .testimonials { padding: 96px 24px; }
+        .testimonials-inner { max-width: 1200px; margin: 0 auto; }
+        .testimonials-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 16px; margin-top: 48px;
+        }
+        .testimonial-card {
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 28px;
+            background: var(--surface);
+        }
+        .testimonial-card .stars { color: var(--primary); font-size: 0.8rem; margin-bottom: 12px; }
+        .testimonial-card p { font-size: 0.8rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 16px; }
+        .testimonial-card .name { font-family: var(--font-heading); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; }
+        .testimonial-card .role { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* ── CTA ── */
+        .cta-section {
+            padding: 96px 24px;
+            background: var(--primary);
+            color: #fff;
+            text-align: center;
+            border-top: 3px solid var(--border);
+            border-bottom: 3px solid var(--border);
+        }
+        .cta-inner { max-width: 700px; margin: 0 auto; }
+        .cta-inner h2 {
+            font-family: var(--font-heading);
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            font-weight: 800; text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .cta-inner p { font-size: 0.85rem; opacity: 0.85; margin-bottom: 32px; }
+        .cta-btn {
+            display: inline-block;
+            padding: 16px 40px;
+            background: var(--bg);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 rgba(0,0,0,0.3);
+            font-family: var(--font-heading);
+            font-size: 0.9rem; font-weight: 700;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .cta-btn:hover { box-shadow: 6px 6px 0 rgba(0,0,0,0.3); transform: translate(-2px, -2px); }
+        .contact-row {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 24px; margin-top: 48px;
+        }
+        .contact-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; margin-bottom: 4px; }
+        .contact-value { font-family: var(--font-heading); font-weight: 600; font-size: 0.85rem; }
+
+        .footer {
+            padding: 24px 0;
+            border-top: 3px solid var(--border);
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .reveal { opacity: 0; transform: translateY(24px); }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hamburger { display: flex; }
+            .hero-grid { grid-template-columns: 1fr; }
+            .hero h1 { font-size: 2.5rem; }
+            .service-stack { grid-template-columns: 1fr; }
+            .about-inner { grid-template-columns: 1fr; }
+            .testimonials-grid { grid-template-columns: 1fr; }
+            .contact-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">{{BRAND_NAME}}</a>
+            <div class="nav-links">
+                <a href="#services">{{NAV_SERVICES}}</a>
+                <a href="#about">{{NAV_ABOUT}}</a>
+                <a href="#reviews">{{NAV_REVIEWS}}</a>
+                <a href="tel:{{PHONE}}" class="nav-cta">{{CTA_PRIMARY}}</a>
+            </div>
+            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        </div>
+    </nav>
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#services">{{NAV_SERVICES}}</a>
+        <a href="#about">{{NAV_ABOUT}}</a>
+        <a href="#reviews">{{NAV_REVIEWS}}</a>
+        <a href="tel:{{PHONE}}">{{PHONE}}</a>
+    </div>
+
+    <section class="hero">
+        <div class="hero-grid">
+            <div class="hero-text">
+                <div class="hero-label">{{HERO_BADGE}}</div>
+                <h1>{{HERO_TITLE_BEFORE}} <span class="highlight">{{HERO_TITLE_HIGHLIGHT}}</span> {{HERO_TITLE_AFTER}}</h1>
+                <p class="hero-desc">{{HERO_DESCRIPTION}}</p>
+                <a href="#contact" class="hero-cta">{{CTA_PRIMARY}}</a>
+            </div>
+            <div class="hero-image">
+                <img src="{{HERO_IMAGE_URL}}" alt="{{HERO_IMAGE_ALT}}" loading="eager">
+            </div>
+        </div>
+    </section>
+
+    <div class="marquee">
+        <div class="marquee-track">
+            {{MARQUEE_ITEMS}}
+        </div>
+    </div>
+
+    <section class="services" id="services">
+        <div class="services-inner">
+            <div class="section-header">
+                <div class="section-eyebrow reveal">{{SERVICES_LABEL}}</div>
+                <div class="section-title reveal">{{SERVICES_TITLE}}</div>
+            </div>
+            <div class="service-stack">
+                {{SERVICE_CARDS}}
+                <!-- Example:
+                <div class="service-card reveal">
+                    <div class="num">01</div>
+                    <h3>Service Name</h3>
+                    <p>Description.</p>
+                    <div class="price">от 1 500 ₽</div>
+                </div>
+                -->
+            </div>
+        </div>
+    </section>
+
+    <section class="about" id="about">
+        <div class="about-inner">
+            <div class="about-image reveal">
+                <img src="{{ABOUT_IMAGE_URL}}" alt="{{ABOUT_IMAGE_ALT}}" loading="lazy">
+            </div>
+            <div class="about-text">
+                <div class="section-eyebrow" style="color: var(--primary);">{{ABOUT_LABEL}}</div>
+                <h2 class="reveal">{{ABOUT_TITLE}}</h2>
+                <p class="reveal">{{ABOUT_TEXT}}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials" id="reviews">
+        <div class="testimonials-inner">
+            <div class="section-header">
+                <div class="section-eyebrow reveal">{{REVIEWS_LABEL}}</div>
+                <div class="section-title reveal">{{REVIEWS_TITLE}}</div>
+            </div>
+            <div class="testimonials-grid">
+                {{TESTIMONIAL_CARDS}}
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section" id="contact">
+        <div class="cta-inner">
+            <h2 class="reveal">{{CTA_TITLE}}</h2>
+            <p class="reveal">{{CTA_DESCRIPTION}}</p>
+            <a href="tel:{{PHONE}}" class="cta-btn reveal">{{CTA_PHONE_TEXT}}: {{PHONE}}</a>
+            <div class="contact-row reveal">
+                <div><div class="contact-label">{{LABEL_ADDRESS}}</div><div class="contact-value">{{ADDRESS}}</div></div>
+                <div><div class="contact-label">{{LABEL_PHONE}}</div><div class="contact-value">{{PHONE}}</div></div>
+                <div><div class="contact-label">{{LABEL_HOURS}}</div><div class="contact-value">{{HOURS}}</div></div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer"><div>&copy; 2026 {{BRAND_NAME}}. {{FOOTER_TEXT}}</div></footer>
+
+    <script>
+        const hamburger = document.getElementById('hamburger');
+        const mobileMenu = document.getElementById('mobileMenu');
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            mobileMenu.classList.toggle('open');
+            document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+        });
+        mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+            hamburger.classList.remove('active'); mobileMenu.classList.remove('open'); document.body.style.overflow = '';
+        }));
+
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+        gsap.timeline({ defaults: { ease: 'power3.out' } })
+            .from('.hero-label', { opacity: 0, x: -20, duration: 0.5, delay: 0.3 })
+            .from('.hero h1', { opacity: 0, y: 50, duration: 0.8 }, '-=0.2')
+            .from('.hero-desc', { opacity: 0, y: 20, duration: 0.5 }, '-=0.4')
+            .from('.hero-cta', { opacity: 0, y: 15, duration: 0.4 }, '-=0.2')
+            .from('.hero-image', { opacity: 0, x: 40, duration: 0.8 }, '-=0.6');
+
+        gsap.utils.toArray('.reveal').forEach((el, i) => {
+            gsap.to(el, {
+                opacity: 1, y: 0, duration: 0.6, ease: 'power2.out',
+                delay: el.closest('.service-stack, .testimonials-grid, .contact-row') ? (i % 4) * 0.1 : 0,
+                scrollTrigger: { trigger: el, start: 'top 88%' }
+            });
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                const t = link.getAttribute('href');
+                if (t && t !== '#') gsap.to(window, { duration: 0.8, scrollTo: { y: t, offsetY: 80 }, ease: 'power2.inOut' });
+            });
+        });
+    </script>
+</body>
+</html>

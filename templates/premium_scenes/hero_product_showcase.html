@@ -1,0 +1,141 @@
+<!-- SCENE: hero.product_showcase.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden">
+  {{DECORATOR}}
+
+  <!-- Grid background -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.04]"
+       style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px); background-size: 40px 40px;"></div>
+
+  <!-- Gradient orbs -->
+  <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="gradient-orb w-[400px] h-[400px] bg-blue-500/20 -top-20 left-1/4" style="animation: orbit-1 20s ease-in-out infinite;"></div>
+    <div class="gradient-orb w-[300px] h-[300px] bg-purple-500/15 bottom-10 right-1/4" style="animation: orbit-2 25s ease-in-out infinite;"></div>
+  </div>
+
+  <!-- Noise overlay -->
+  <div class="absolute inset-0 grain-overlay pointer-events-none z-[1]"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Centered header -->
+    <div class="text-center flex flex-col items-center gap-6 mb-14 {{REVEAL_CLASS}}">
+
+      <!-- Kicker badge -->
+      <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} w-fit uppercase tracking-[0.15em]">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        {{KICKER}}
+      </div>
+
+      <!-- Headline -->
+      <h1 class="{{HEADING_CLASS}} text-5xl sm:text-6xl md:text-7xl {{TEXT}} leading-[1.05] max-w-3xl tracking-tight">
+        {{HEADLINE}}
+      </h1>
+
+      <!-- Subheadline -->
+      <p class="{{BODY_CLASS}} text-lg md:text-xl {{MUTED}} max-w-2xl leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+
+      <!-- CTA buttons -->
+      <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+        <a href="{{CTA_PRIMARY_HREF}}"
+           class="{{BUTTON_CLASS}} group relative overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <span class="relative z-10">{{CTA_PRIMARY_TEXT}}</span>
+          <span class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
+        </a>
+        <a href="{{CTA_SECONDARY_HREF}}"
+           class="inline-flex items-center gap-2 text-sm font-medium {{TEXT}} hover:opacity-70 transition-all duration-300 group">
+          {{CTA_SECONDARY_TEXT}}
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+
+      <!-- Social proof -->
+      <div class="flex items-center gap-3 {{MUTED}} text-sm pt-1">
+        <div class="flex -space-x-2">
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 {{BORDER}} shadow-sm"></div>
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-green-400 to-teal-500 border-2 {{BORDER}} shadow-sm"></div>
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-red-500 border-2 {{BORDER}} shadow-sm"></div>
+          <div class="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 border-2 {{BORDER}} shadow-sm"></div>
+        </div>
+        <span>{{SOCIAL_PROOF}}</span>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="flex flex-wrap items-center justify-center gap-6 pt-2 {{MUTED}} text-xs">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {{TRUST_1}}
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {{TRUST_2}}
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {{TRUST_3}}
+        </span>
+      </div>
+    </div>
+
+    <!-- Product screenshot with glow -->
+    <div class="relative {{REVEAL_CLASS}} max-w-5xl mx-auto">
+      <!-- Glow effect -->
+      <div class="absolute -inset-6 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl opacity-60 pointer-events-none"></div>
+
+      <!-- Browser chrome frame -->
+      <div class="relative {{SURFACE_CLASS}} overflow-hidden shadow-2xl border {{BORDER}}">
+        <!-- Browser bar -->
+        <div class="flex items-center gap-2 px-4 py-2.5 border-b {{BORDER}} {{SURFACE}}">
+          <div class="flex gap-1.5">
+            <div class="w-3 h-3 rounded-full bg-red-400/80"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-400/80"></div>
+            <div class="w-3 h-3 rounded-full bg-green-400/80"></div>
+          </div>
+          <div class="flex-1 mx-4">
+            <div class="{{SURFACE}} rounded-md px-3 py-1 text-xs {{MUTED}} text-center border {{BORDER}} max-w-xs mx-auto">
+              {{BROWSER_URL}}
+            </div>
+          </div>
+        </div>
+        <!-- Screenshot -->
+        <img
+          src="{{HERO_MEDIA_URL}}"
+          alt="{{HEADLINE}}"
+          class="{{MEDIA_CLASS}} w-full"
+          loading="eager"
+        />
+      </div>
+
+      <!-- Floating stats cards -->
+      <div class="absolute -bottom-6 -left-6 {{SURFACE_CLASS}} p-4 shadow-xl border {{BORDER}} backdrop-blur-sm hidden md:block">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+          <div>
+            <p class="text-xs {{MUTED}}">{{FLOAT_CARD_LABEL}}</p>
+            <p class="text-xl font-bold {{TEXT}}">{{FLOAT_CARD_VALUE}}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute -top-4 -right-4 {{SURFACE_CLASS}} px-4 py-2 shadow-xl border {{BORDER}} backdrop-blur-sm hidden md:flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+        <span class="text-xs font-medium {{TEXT}}">{{TOP_BADGE}}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orb keyframes -->
+  <style>
+    @keyframes orbit-1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(-30px, 40px) scale(1.1); }
+      66% { transform: translate(20px, -20px) scale(0.95); }
+    }
+    @keyframes orbit-2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, -30px) scale(1.15); }
+    }
+  </style>
+</section>

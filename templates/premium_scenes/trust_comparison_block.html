@@ -1,0 +1,62 @@
+<!-- SCENE: trust.comparison_block.v1 — P4-FIX BUG-021: fully expanded -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden">
+  {{DECORATOR}}
+  <!-- Subtle diagonal lines -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.02]"
+       style="background-image: repeating-linear-gradient(135deg, currentColor 0, currentColor 1px, transparent 1px, transparent 16px); background-size: 22px 22px;"></div>
+  <!-- Noise overlay -->
+  <div class="absolute inset-0 grain-overlay pointer-events-none z-[1]"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="text-center flex flex-col items-center gap-4 mb-14 {{REVEAL_CLASS}}">
+      <!-- Kicker badge -->
+      <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} w-fit uppercase tracking-[0.15em]">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        {{KICKER}}
+      </div>
+      <!-- Heading -->
+      <h2 class="{{HEADING_CLASS}} text-3xl sm:text-4xl md:text-5xl {{TEXT}} leading-tight max-w-3xl tracking-tight">
+        {{HEADING}}
+      </h2>
+      <!-- Subheading -->
+      <p class="{{BODY_CLASS}} text-lg md:text-xl {{MUTED}} max-w-2xl leading-relaxed">
+        {{SUBHEADING}}
+      </p>
+    </div>
+
+    <!-- Comparison grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 {{GAP}} {{REVEAL_CLASS}}">
+      {{COMPARISON_HTML}}
+    </div>
+
+    <!-- Optional bottom CTA -->
+    <div class="mt-14 text-center {{REVEAL_CLASS}}">
+      <a href="{{CTA_PRIMARY_HREF}}"
+         class="inline-flex items-center gap-2.5 px-8 py-4 rounded-full {{ACCENT_BG}} text-white font-semibold text-sm tracking-wide hover:opacity-90 transition-all duration-300 shadow-lg shadow-blue-600/20">
+        {{CTA_PRIMARY_TEXT}}
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- GSAP reveal animation -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        const section = document.querySelector('[class*="comparison"]') || document.currentScript?.closest('section');
+        if (section) {
+          gsap.from(section.querySelectorAll('.reveal-on-scroll, [class*="REVEAL"]'), {
+            y: 40, opacity: 0, duration: 0.8, stagger: 0.12, ease: 'power2.out',
+            scrollTrigger: { trigger: section, start: 'top 80%', once: true }
+          });
+          // Animate grid items
+          gsap.from(section.querySelectorAll('[class*="grid"] > *'), {
+            y: 30, opacity: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out',
+            scrollTrigger: { trigger: section, start: 'top 75%', once: true }
+          });
+        }
+      }
+    });
+  </script>
+</section>

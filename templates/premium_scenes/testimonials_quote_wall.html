@@ -1,0 +1,87 @@
+<!-- SCENE: testimonials.quote_wall.v1 -->
+<section class="{{BG}} {{SECTION_PADDING}} relative overflow-hidden">
+  {{DECORATOR}}
+  <!-- Decorative quote mark -->
+  <div class="absolute top-12 right-8 md:right-16 pointer-events-none opacity-[0.04] select-none">
+    <svg class="w-48 h-48 md:w-64 md:h-64 {{TEXT}}" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z"/>
+    </svg>
+  </div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="text-center mb-14 {{REVEAL_CLASS}}">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} uppercase tracking-[0.15em] mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        {{KICKER}}
+      </div>
+      <h2 class="{{HEADING_CLASS}} text-3xl md:text-4xl {{TEXT}} mb-3">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} {{MUTED}} max-w-md mx-auto leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+
+    <!-- Testimonials masonry grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 {{GAP}} {{REVEAL_CLASS}}">
+      {{TESTIMONIALS_HTML}}
+    </div>
+
+    <!-- Trust indicators -->
+    <div class="mt-14 flex flex-wrap items-center justify-center gap-8 {{REVEAL_CLASS}}">
+      <div class="flex items-center gap-2 {{MUTED}}">
+        <svg class="w-5 h-5 {{ACCENT}}" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <span class="{{BODY_CLASS}} text-sm font-medium">{{RATING_TEXT}}</span>
+      </div>
+      <div class="h-4 w-px {{BORDER}} hidden md:block"></div>
+      <span class="{{BODY_CLASS}} text-sm {{MUTED}}">{{TRUST_BADGE}}</span>
+    </div>
+  </div>
+
+  <!-- Testimonial card styles and animations -->
+  <style>
+    .testimonial-card {
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .testimonial-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px -8px rgba(0,0,0,0.12);
+    }
+    .testimonial-card .quote-icon {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      opacity: 0.3;
+    }
+    .testimonial-card:hover .quote-icon {
+      opacity: 0.6;
+      transform: scale(1.1);
+    }
+    .testimonial-avatar {
+      transition: transform 0.3s ease;
+    }
+    .testimonial-card:hover .testimonial-avatar {
+      transform: scale(1.08);
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.testimonial-card').forEach(function(card, i) {
+          gsap.from(card, {
+            scrollTrigger: { trigger: card, start: 'top 88%', toggleActions: 'play none none none' },
+            opacity: 0,
+            y: 30,
+            scale: 0.97,
+            duration: 0.5,
+            delay: i * 0.1,
+            ease: 'power2.out'
+          });
+        });
+      }
+    });
+  </script>
+</section>

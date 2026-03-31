@@ -1,0 +1,25 @@
+[Unit]
+Description=ARCANE - Autonomous Runtime for Code, Automation, Networking & Engineering
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/arcane
+ExecStart=/root/arcane/venv/bin/python -m uvicorn app:app --host 0.0.0.0 --port 8900 --workers 1
+Restart=always
+RestartSec=5
+Environment=PATH=/root/arcane/venv/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/root/arcane/.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=arcane
+
+# Security
+NoNewPrivileges=false
+ProtectSystem=false
+
+[Install]
+WantedBy=multi-user.target

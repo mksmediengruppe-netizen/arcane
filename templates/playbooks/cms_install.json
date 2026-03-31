@@ -1,0 +1,80 @@
+{
+  "bitrix_install": {
+    "name": "1С-Битрикс Installation",
+    "steps_hint": [
+      "Шаг 1: Лицензионное соглашение — принять чекбокс и нажать Далее",
+      "Шаг 2: Регистрация — ввести license_key",
+      "Шаг 3: Предварительная проверка — нажать Далее",
+      "Шаг 4: Создание БД — ввести db_host, db_name, db_user, db_password",
+      "Шаг 5: Установка — ждать прогресс-бар до завершения",
+      "Шаг 6: Создание администратора — ввести admin_login, admin_password, admin_email",
+      "Шаг 7: Выбор шаблона — выбрать по site_template",
+      "Шаг 8: Завершение — всё готово"
+    ],
+    "required_data": [
+      "license_key", "db_host", "db_name", "db_user", "db_password",
+      "admin_login", "admin_password", "admin_email"
+    ],
+    "completion_markers": [
+      "Система успешно установлена",
+      "Установка завершена",
+      "Installation complete",
+      "Поздравляем"
+    ]
+  },
+  "wordpress_install": {
+    "name": "WordPress Installation",
+    "steps_hint": [
+      "Шаг 1: Выбор языка — выбрать Русский или English",
+      "Шаг 2: Информация о БД — ввести db_name, db_user, db_password, db_host",
+      "Шаг 3: Запуск установки — нажать Submit / Отправить",
+      "Шаг 4: Информация о сайте — site_name, admin_login, admin_password, admin_email",
+      "Шаг 5: Успех — WordPress установлен"
+    ],
+    "required_data": [
+      "db_name", "db_user", "db_password", "db_host",
+      "site_name", "admin_login", "admin_password", "admin_email"
+    ],
+    "completion_markers": [
+      "WordPress has been installed",
+      "Success",
+      "Вход",
+      "Log In"
+    ]
+  },
+  "joomla_install": {
+    "name": "Joomla Installation",
+    "steps_hint": [
+      "Шаг 1: Конфигурация — site_name, admin_email, admin_login, admin_password",
+      "Шаг 2: База данных — db_host, db_user, db_password, db_name",
+      "Шаг 3: Обзор — проверить настройки и нажать Установить",
+      "Шаг 4: Завершение — удалить папку installation"
+    ],
+    "required_data": [
+      "site_name", "admin_email", "admin_login", "admin_password",
+      "db_host", "db_user", "db_password", "db_name"
+    ],
+    "completion_markers": [
+      "Congratulations",
+      "Поздравляем",
+      "Joomla has been installed"
+    ]
+  },
+  "opencart_install": {
+    "name": "OpenCart Installation",
+    "steps_hint": [
+      "Шаг 1: Лицензия — принять и нажать Continue",
+      "Шаг 2: Проверка требований — нажать Continue",
+      "Шаг 3: Конфигурация — db_host, db_user, db_password, db_name, admin_login, admin_password, admin_email",
+      "Шаг 4: Завершение — удалить install директорию"
+    ],
+    "required_data": [
+      "db_host", "db_user", "db_password", "db_name",
+      "admin_login", "admin_password", "admin_email"
+    ],
+    "completion_markers": [
+      "Installation Complete",
+      "OpenCart has been installed"
+    ]
+  }
+}

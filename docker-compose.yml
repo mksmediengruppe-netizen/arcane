@@ -1,0 +1,134 @@
+version: "3.8"
+
+services:
+  # ============================================
+  # ARCANE Core
+  # ============================================
+  arcane-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: arcane-api
+    restart: unless-stopped
+    ports:
+      - "8900:8900"
+    env_file:
+      - .env
+    environment:
+      - PORT=8900
+      - ENVIRONMENT=production
+    volumes:
+      - workspace:/root/workspace
+      - screenshots:/root/workspace/screenshots
+      - ./:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - arcane-net
+
+  # ============================================
+  # Infrastructure
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: arcane-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: arcane
+      POSTGRES_USER: arcane
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-arcane_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - arcane-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arcane"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: arcane-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - arcane-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: arcane-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-arcane}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-arcane_secret}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    networks:
+      - arcane-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: arcane-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6334:6333"
+    networks:
+      - arcane-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # Browser (Playwright)
+  # ============================================
+  browser:
+    image: mcr.microsoft.com/playwright:v1.40.0-jammy
+    container_name: arcane-browser
+    restart: unless-stopped
+    command: >
+      bash -c "
+        pip install playwright fastapi uvicorn &&
+        python -c 'from playwright.sync_api import sync_playwright; sync_playwright().start()' &&
+        tail -f /dev/null
+      "
+    shm_size: 2gb
+    networks:
+      - arcane-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  qdrant_data:
+  workspace:
+  screenshots:
+
+networks:
+  arcane-net:
+    driver: bridge

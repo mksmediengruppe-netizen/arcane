@@ -1,0 +1,22 @@
+<!-- SCENE: pricing.cards.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden" id="pricing">
+  {{DECORATOR}}
+  
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Header -->
+    <div class="text-center mb-12 {{REVEAL_CLASS}}">
+      <span class="inline-block text-xs font-medium {{ACCENT}} uppercase tracking-widest mb-4">Стоимость</span>
+      <h2 class="{{HEADING_CLASS}} text-3xl md:text-5xl {{TEXT}} leading-tight mb-4">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} text-lg {{MUTED}} max-w-2xl mx-auto">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+    
+    <!-- Pricing Cards -->
+    <div class="grid md:grid-cols-3 {{GAP}}">
+      {{PRICING_HTML}}
+    </div>
+  </div>
+</section>

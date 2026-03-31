@@ -1,0 +1,71 @@
+<!-- SCENE: hero.legal_authority.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden">
+  {{DECORATOR}}
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8">
+    <div class="grid md:grid-cols-5 gap-12 md:gap-16 items-center min-h-[75vh]">
+      
+      <!-- Text column (wider) -->
+      <div class="md:col-span-3 flex flex-col gap-7 {{REVEAL_CLASS}}">
+        <!-- Authority badge -->
+        <div class="flex items-center gap-3">
+          <div class="w-1 h-10 {{ACCENT_BG}} rounded-full"></div>
+          <span class="text-xs font-semibold {{MUTED}} uppercase tracking-[0.2em]">Профессиональная юридическая помощь</span>
+        </div>
+        
+        <h1 class="{{HEADING_CLASS}} text-4xl md:text-5xl lg:text-6xl {{TEXT}} leading-[1.1] max-w-2xl">
+          {{HEADLINE}}
+        </h1>
+        
+        <p class="{{BODY_CLASS}} text-lg {{MUTED}} max-w-xl leading-relaxed">
+          {{SUBHEADLINE}}
+        </p>
+        
+        <!-- CTA row -->
+        <div class="flex flex-wrap gap-4 pt-2">
+          <a href="{{CTA_PRIMARY_HREF}}" class="{{BUTTON_CLASS}}">
+            {{CTA_PRIMARY_TEXT}}
+          </a>
+          <div class="flex items-center gap-2 text-sm {{MUTED}}">
+            <span class="text-green-500">●</span>
+            Ответим в течение 15 минут
+          </div>
+        </div>
+        
+        <!-- Authority facts row -->
+        <div class="grid grid-cols-3 gap-6 pt-6 {{DIVIDER_CLASS}} border-t mt-2">
+          <div class="flex flex-col gap-1">
+            <span class="text-2xl font-bold {{TEXT}}">15+</span>
+            <span class="text-xs {{MUTED}}">лет практики</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-2xl font-bold {{TEXT}}">500+</span>
+            <span class="text-xs {{MUTED}}">выигранных дел</span>
+          </div>
+          <div class="flex flex-col gap-1">
+            <span class="text-2xl font-bold {{TEXT}}">98%</span>
+            <span class="text-xs {{MUTED}}">успешных исходов</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media column (narrower) -->
+      <div class="md:col-span-2 {{REVEAL_CLASS}}">
+        <div class="relative">
+          <img
+            src="{{HERO_MEDIA_URL}}"
+            alt="{{HEADLINE}}"
+            class="{{MEDIA_CLASS}} w-full"
+            loading="eager"
+          />
+          <!-- Consultation card -->
+          <div class="absolute -bottom-5 -right-5 {{SURFACE_CLASS}} p-5 shadow-2xl max-w-[220px]">
+            <p class="text-xs font-semibold {{MUTED}} mb-2 uppercase tracking-wide">Бесплатная консультация</p>
+            <p class="text-sm {{TEXT}} leading-snug">Первичный анализ вашего дела — бесплатно</p>
+            <a href="{{CTA_PRIMARY_HREF}}" class="mt-3 text-xs font-semibold {{ACCENT}} hover:underline block">Записаться →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>

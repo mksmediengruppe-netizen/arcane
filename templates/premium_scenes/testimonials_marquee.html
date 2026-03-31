@@ -1,0 +1,22 @@
+<!-- SCENE: testimonials.marquee.v1 -->
+<section class="{{BG}} {{SECTION_PADDING}} overflow-hidden">
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 mb-10 {{REVEAL_CLASS}}">
+    <h2 class="{{HEADING_CLASS}} text-3xl md:text-4xl {{TEXT}} text-center mb-2">Нам доверяют</h2>
+    <p class="{{BODY_CLASS}} {{MUTED}} text-center">Сотни довольных клиентов по всей стране</p>
+  </div>
+  
+  <!-- Marquee track -->
+  <div class="relative">
+    <!-- Fade edges -->
+    <div class="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-current to-transparent z-10 pointer-events-none opacity-10"></div>
+    <div class="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-current to-transparent z-10 pointer-events-none opacity-10"></div>
+    
+    <div class="flex overflow-hidden">
+      <div class="marquee-track flex gap-5 flex-nowrap">
+        {{TESTIMONIALS_HTML}}
+        <!-- Duplicate for seamless loop -->
+        {{TESTIMONIALS_HTML}}
+      </div>
+    </div>
+  </div>
+</section>

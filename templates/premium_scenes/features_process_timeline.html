@@ -1,0 +1,82 @@
+<!-- SCENE: features.process_timeline.v1 -->
+<section class="{{BG}} {{SECTION_PADDING}} relative overflow-hidden">
+  {{DECORATOR}}
+  <!-- Gradient accent -->
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full opacity-[0.06] pointer-events-none"
+       style="background: radial-gradient(circle, currentColor 0%, transparent 70%);"></div>
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="text-center mb-16 {{REVEAL_CLASS}}">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full {{SURFACE}} {{BORDER}} border text-xs font-semibold {{ACCENT}} uppercase tracking-[0.15em] mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        {{KICKER}}
+      </div>
+      <h2 class="{{HEADING_CLASS}} text-3xl md:text-4xl {{TEXT}} mb-4">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} {{MUTED}} max-w-lg mx-auto leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+
+    <!-- Timeline -->
+    <div class="max-w-2xl mx-auto relative">
+      <!-- Vertical connector line -->
+      <div class="absolute left-6 md:left-8 top-0 bottom-0 w-px {{BORDER}} timeline-line"></div>
+
+      <!-- Steps container -->
+      <div class="flex flex-col gap-10 {{REVEAL_CLASS}}">
+        {{STEPS_HTML}}
+      </div>
+    </div>
+
+    <!-- Bottom CTA -->
+    <div class="text-center mt-14 {{REVEAL_CLASS}}">
+      <a href="{{CTA_PRIMARY_HREF}}"
+         class="{{BUTTON_CLASS}} inline-flex items-center gap-2 px-8 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+        {{CTA_PRIMARY_LABEL}}
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Timeline animations -->
+  <style>
+    .timeline-step {
+      transition: transform 0.3s ease;
+    }
+    .timeline-step:hover {
+      transform: translateX(6px);
+    }
+    .timeline-step .step-number {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .timeline-step:hover .step-number {
+      transform: scale(1.12);
+      box-shadow: 0 0 0 4px currentColor, 0 0 0 6px transparent;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        var line = document.querySelector('.timeline-line');
+        if (line) {
+          gsap.from(line, {
+            scrollTrigger: { trigger: line, start: 'top 80%', end: 'bottom 20%', scrub: 1 },
+            scaleY: 0, transformOrigin: 'top center'
+          });
+        }
+        gsap.utils.toArray('.timeline-step').forEach(function(step, i) {
+          gsap.from(step, {
+            scrollTrigger: { trigger: step, start: 'top 88%', toggleActions: 'play none none none' },
+            opacity: 0, x: -30, duration: 0.5, delay: i * 0.15, ease: 'power2.out'
+          });
+        });
+      }
+    });
+  </script>
+</section>

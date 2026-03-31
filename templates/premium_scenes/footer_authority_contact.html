@@ -1,0 +1,60 @@
+<!-- SCENE: footer.authority_contact.v1 -->
+<footer class="{{BG}} {{SECTION_PADDING}} {{DIVIDER_CLASS}} border-t">
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8">
+    <div class="grid md:grid-cols-3 {{GAP}} mb-12">
+      
+      <!-- Brand column -->
+      <div class="flex flex-col gap-4">
+        <a href="#" class="{{HEADING_CLASS}} text-xl {{TEXT}} font-bold">{{BRAND_NAME}}</a>
+        <p class="{{BODY_CLASS}} text-sm {{MUTED}} leading-relaxed max-w-xs">
+          Профессиональные услуги с гарантией результата. Работаем честно и прозрачно.
+        </p>
+        <div class="flex gap-3 text-sm {{MUTED}}">
+          {{SOCIAL_LINKS_HTML}}
+        </div>
+      </div>
+      
+      <!-- Contacts column -->
+      <div class="flex flex-col gap-4">
+        <h3 class="text-xs font-semibold {{MUTED}} uppercase tracking-widest">Контакты</h3>
+        <div class="flex flex-col gap-3">
+          <a href="tel:{{PHONE}}" class="flex items-center gap-2 text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">
+            <i data-lucide="phone" class="{{ICON_CLASS}}"></i>
+            {{PHONE}}
+          </a>
+          <a href="mailto:{{EMAIL}}" class="flex items-center gap-2 text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">
+            <i data-lucide="mail" class="{{ICON_CLASS}}"></i>
+            {{EMAIL}}
+          </a>
+          <div class="flex items-start gap-2 text-sm {{MUTED}}">
+            <i data-lucide="map-pin" class="{{ICON_CLASS}} mt-0.5 flex-shrink-0"></i>
+            <span>{{ADDRESS}}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation column -->
+      <div class="flex flex-col gap-4">
+        <h3 class="text-xs font-semibold {{MUTED}} uppercase tracking-widest">Навигация</h3>
+        <nav class="flex flex-col gap-2">
+          <a href="#about" class="text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">О нас</a>
+          <a href="#services" class="text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">Услуги</a>
+          <a href="#cases" class="text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">Кейсы</a>
+          <a href="#reviews" class="text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">Отзывы</a>
+          <a href="#contact" class="text-sm {{TEXT}} hover:{{ACCENT}} transition-colors">Контакты</a>
+        </nav>
+      </div>
+      
+    </div>
+    
+    <!-- Bottom bar -->
+    <div class="{{DIVIDER_CLASS}} border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-xs {{MUTED}}">© 2024 {{BRAND_NAME}}. Все права защищены.</p>
+      <div class="flex gap-6 text-xs {{MUTED}}">
+        <a href="#" class="hover:{{ACCENT}} transition-colors">Политика конфиденциальности</a>
+        <a href="#" class="hover:{{ACCENT}} transition-colors">Пользовательское соглашение</a>
+      </div>
+    </div>
+    
+  </div>
+</footer>

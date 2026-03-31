@@ -1,0 +1,123 @@
+{
+  "landing_page": {
+    "name": "Лендинг (одностраничный сайт)",
+    "trigger_keywords": ["лендинг", "landing", "одностраничн", "промо"],
+    "steps": [
+      {"action": "scaffold", "command": "arcane-init landing", "tier": "NANO"},
+      {"action": "search", "query": "{topic} website design 2026", "tier": "FAST"},
+      {"action": "coding", "task": "Generate HTML+CSS based on search results", "tier": "FAST"},
+      {"action": "shell", "command": "python -m http.server 8080", "background": true},
+      {"action": "browser", "url": "http://localhost:8080", "check": "screenshot"},
+      {"action": "browser", "viewport": "375x812", "check": "screenshot"},
+      {"action": "qa", "checks": ["lighthouse", "links", "forms"]},
+      {"action": "deploy", "target": "auto"}
+    ],
+    "estimated_time": "12 min",
+    "estimated_cost": "$0.20",
+    "success_rate": "95%"
+  },
+
+  "nextjs_site": {
+    "name": "Сайт на Next.js (многостраничный)",
+    "trigger_keywords": ["сайт", "website", "визитка", "5 страниц", "многостранич"],
+    "steps": [
+      {"action": "scaffold", "command": "arcane-init web-nextjs"},
+      {"action": "search", "query": "{topic} site structure pages"},
+      {"action": "coding", "task": "Generate pages + components"},
+      {"action": "coding", "task": "Add contact form"},
+      {"action": "shell", "command": "npm run build", "check": "exit_code"},
+      {"action": "shell", "command": "npm run dev", "background": true},
+      {"action": "browser", "check": "all_pages"},
+      {"action": "qa", "checks": ["lighthouse", "mobile", "forms"]},
+      {"action": "deploy", "target": "vercel"}
+    ],
+    "estimated_time": "25 min",
+    "estimated_cost": "$0.50"
+  },
+
+  "fastapi_deploy": {
+    "name": "API на FastAPI + деплой на VPS",
+    "trigger_keywords": ["api", "fastapi", "бэкенд", "сервер", "backend"],
+    "steps": [
+      {"action": "scaffold", "command": "arcane-init api-python"},
+      {"action": "coding", "task": "Generate models + endpoints"},
+      {"action": "coding", "task": "Generate Dockerfile + docker-compose"},
+      {"action": "shell", "command": "pytest", "check": "exit_code"},
+      {"action": "ssh", "task": "Deploy with docker-compose on VPS"},
+      {"action": "ssh", "task": "Configure Nginx reverse proxy"},
+      {"action": "ssh", "task": "Setup SSL with Certbot"},
+      {"action": "qa", "checks": ["http_200", "ssl", "response_time"]}
+    ],
+    "estimated_time": "30 min",
+    "estimated_cost": "$0.60"
+  },
+
+  "n8n_workflow": {
+    "name": "n8n workflow (интеграция)",
+    "trigger_keywords": ["n8n", "workflow", "автоматизац", "интеграц", "форма"],
+    "steps": [
+      {"action": "search", "query": "{service} API documentation"},
+      {"action": "coding", "task": "Generate n8n workflow JSON"},
+      {"action": "coding", "task": "POST to n8n API /api/v1/workflows"},
+      {"action": "coding", "task": "Activate workflow"},
+      {"action": "coding", "task": "Send test webhook"},
+      {"action": "qa", "checks": ["webhook_200", "data_created"]}
+    ],
+    "estimated_time": "15 min",
+    "estimated_cost": "$0.25"
+  },
+
+  "crm_setup": {
+    "name": "Настройка CRM (Bitrix24/AmoCRM)",
+    "trigger_keywords": ["crm", "битрикс24", "amocrm", "воронк", "сделк"],
+    "steps": [
+      {"action": "search", "query": "{crm_name} REST API documentation"},
+      {"action": "coding", "task": "Create pipeline via API"},
+      {"action": "coding", "task": "Add custom fields"},
+      {"action": "coding", "task": "Setup webhook"},
+      {"action": "coding", "task": "Test: create sample deal"},
+      {"action": "qa", "checks": ["api_response", "deal_created"]}
+    ],
+    "estimated_time": "10 min",
+    "estimated_cost": "$0.15"
+  },
+
+  "wordpress": {
+    "name": "WordPress сайт на VPS",
+    "trigger_keywords": ["wordpress", "wp", "вордпресс", "блог", "магазин wordpress"],
+    "steps": [
+      {"action": "ssh", "task": "Install Docker + Docker Compose on VPS", "tier": "FAST"},
+      {"action": "ssh", "task": "Create docker-compose.yml with WordPress + MySQL + Nginx"},
+      {"action": "ssh", "task": "docker-compose up -d"},
+      {"action": "ssh", "task": "Install WP-CLI inside container"},
+      {"action": "ssh", "task": "wp core install --url=DOMAIN --title=TITLE --admin_user=admin"},
+      {"action": "ssh", "task": "wp theme install astra --activate"},
+      {"action": "ssh", "task": "wp plugin install advanced-custom-fields --activate"},
+      {"action": "coding", "task": "Generate AI images for hero/sections"},
+      {"action": "ssh", "task": "wp media import + wp option update for customizer"},
+      {"action": "ssh", "task": "Configure Nginx reverse proxy for domain"},
+      {"action": "ssh", "task": "Setup SSL with Certbot"},
+      {"action": "browser", "url": "https://DOMAIN", "check": "screenshot"},
+      {"action": "qa", "checks": ["http_200", "ssl", "wp_admin_login", "mobile"]}
+    ],
+    "estimated_time": "35 min",
+    "estimated_cost": "$0.50",
+    "requires_from_user": ["vps_access", "domain"]
+  },
+
+  "bitrix_cms_install": {
+    "name": "Установка 1С-Битрикс CMS на VPS",
+    "trigger_keywords": ["битрикс", "bitrix", "1с-битрикс", "cms битрикс"],
+    "steps": [
+      {"action": "ssh", "task": "Install BitrixEnv on VPS"},
+      {"action": "ssh", "task": "Create management pool, configure services"},
+      {"action": "ssh", "task": "Setup database for Bitrix"},
+      {"action": "browser", "task": "navigate_wizard", "playbook": "bitrix_install"},
+      {"action": "browser", "task": "Configure template and modules"},
+      {"action": "qa", "checks": ["http_200", "admin_panel", "ssl"]}
+    ],
+    "estimated_time": "40 min",
+    "estimated_cost": "$0.80",
+    "requires_from_user": ["license_key", "vps_access"]
+  }
+}
