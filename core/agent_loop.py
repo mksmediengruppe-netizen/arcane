@@ -477,17 +477,23 @@ class AgentLoop:
 
     async def _run_frontend_director(self, user_message: str) -> None:
         """
-        Run the full creative direction pipeline BEFORE the main agent loop:
-        1. VisualRAG v2 — fetch references with screenshots
-        2. MultiConceptGenerator — create 3 distinct concepts
-        3. DesignRanker — pick the best concept
-        4. Inject winning scene plan into conversation
-
-        Falls back gracefully at each step:
-        - No MultiConcept? Use single FrontendDirector
-        - No VisualRAG? Use text-only RAG
-        - No Director? Agent proceeds with its own creative direction
+        Scene-Driven pipeline — the ONLY execution path for web_design tasks.
+        
+        Flow: classify → plan_page → assemble_page → deploy
+        
+        No legacy fallback. If scene pipeline fails after retries,
+        we inject a minimal scene plan from defaults rather than
+        letting the LLM generate HTML from scratch.
+        
+        CUTOVER v1: 2026-03-31
         """
+        if not _scene_driven_available:
+            logger.error("CUTOVER BLOCK: scene_driven module not available — cannot proceed with web_design task")
+            await self._emit_event("error", {
+                "message": "Scene pipeline module not available. Please check server configuration.",
+            })
+            return
+
         try:
             await self._emit_event("phase_change", {
                 "phase": "directing",
@@ -495,218 +501,102 @@ class AgentLoop:
                 "tool": "frontend_director",
             })
 
-            # Detect if this is a landing page / website task via Intent Classifier
+            # Intent gate: only proceed for genuine web_design tasks
             is_landing = False
             try:
                 from core.intent_classifier import classify_intent
                 intent_result = await classify_intent(self._client, user_message)
                 intent = intent_result.get("intent", "")
                 is_landing = intent == "web_design"
-                logger.info(f"FrontendDirector: intent_classifier returned '{intent}' (confidence={intent_result.get('confidence', 0)})")
+                logger.info(f"FrontendDirector: intent='{intent}' (confidence={intent_result.get('confidence', 0)})")
             except Exception as e:
-                # Fallback to keyword detection if classifier fails
-                # P3-FIX BUG-022: Narrowed keywords to reduce false positives.
-                # Only trigger on strong web-design signals, not generic words like "page" or "web".
+                # Fallback to keyword detection
                 landing_keywords = [
                     "лендинг", "landing page", "одностранич", "промо-сайт",
                     "сайт-визитк", "homepage design", "create website", "сделай сайт",
                     "создай сайт", "разработай сайт", "build a website",
                 ]
                 is_landing = any(kw in user_message.lower() for kw in landing_keywords)
-                logger.warning(f"FrontendDirector: intent_classifier failed ({e}), using narrowed keyword fallback")
+                logger.warning(f"FrontendDirector: intent_classifier failed ({e}), keyword fallback={is_landing}")
+
             if not is_landing:
                 logger.info("FrontendDirector: not a web_design task, skipping")
                 return
 
-            logger.info("FrontendDirector: starting creative direction pipeline")
-            # ═══ Scene-Driven Code-RAG (priority path) ═══
-            # P4-FIX BUG-018: Proper retry with delay and temperature bump
+            logger.info("SCENE-ONLY PATH: starting scene-driven pipeline (no legacy fallback)")
+
+            # ═══ Scene-Driven Code-RAG — 3 attempts with progressive temperature ═══
             import asyncio as _asyncio
-            _max_scene_retries = 2
-            for _attempt in range(1, _max_scene_retries + 1):
-                logger.info(f"Scene-Driven pipeline: attempt {_attempt}/{_max_scene_retries}")
-                scene_driven_success = await self._run_scene_driven_pipeline(
-                    user_message,
-                    temperature_boost=0.1 * (_attempt - 1),  # 0.0 first, 0.1 second
-                )
-                if scene_driven_success:
-                    logger.info(f"Scene-Driven pipeline succeeded on attempt {_attempt}")
-                    return
-                if _attempt < _max_scene_retries:
-                    logger.warning(f"Scene-Driven pipeline failed on attempt {_attempt}, waiting 2s before retry...")
-                    await _asyncio.sleep(2)
-            logger.warning("Scene-Driven pipeline failed after all retries")
-            # ═══ Phase 5: Legacy fallback gated by feature flag ═══
-            from config.settings import get_config as _get_config
-            _cfg = _get_config()
-            if not _cfg.legacy_coder_enabled:
-                logger.info("FEATURE_FLAG_LEGACY_CODER=false — skipping legacy MultiConcept/Director fallback. Agent will use own creative direction.")
-                return
-            logger.warning("FEATURE_FLAG_LEGACY_CODER=true — entering legacy MultiConcept/Director fallback path")
+            _MAX_RETRIES = 3
+            _last_error = None
 
-            # ═══ Step 1: Fetch references (VisualRAG v2 or fallback to text RAG) ═══
-            rag_references = []
-            visual_context = ""
-            try:
-                if _visual_rag_available:
-                    vrag = get_visual_rag()
-                    vrag_result = await vrag.get_visual_references(
-                        query=user_message[:200],
-                        min_tier="A",
-                        limit=4,
-                        include_screenshots=True,
-                    )
-                    rag_references = vrag_result.get("references", [])
-                    visual_context = vrag_result.get("style_summary", "")
-                    logger.info(f"VisualRAG v2: got {len(rag_references)} references with screenshots")
-                else:
-                    from workers.design_rag import get_design_rag
-                    rag = get_design_rag()
-                    rag_results = await rag.search(
-                        query=user_message[:200],
-                        min_tier="A",
-                        limit=6,
-                        diversity=True,
-                    )
-                    rag_references = rag_results.get("references", [])
-                    logger.info(f"Text RAG fallback: got {len(rag_references)} references")
-            except Exception as e:
-                logger.warning(f"RAG fetch failed: {e}")
-
-            # Load user preferences
-            user_preferences = {}
-            try:
-                prefs = await get_user_preferences(self._user_id)
-                if prefs:
-                    user_preferences = prefs
-            except Exception:
-                pass
-
-            # ═══ Step 2: Generate concepts (MultiConcept or single Director) ═══
-            winning_plan = None
-
-            if _multi_concept_available:
+            for _attempt in range(1, _MAX_RETRIES + 1):
+                logger.info(f"Scene-Driven pipeline: attempt {_attempt}/{_MAX_RETRIES}")
                 try:
-                    await self._emit_event("phase_change", {
-                        "phase": "generating_concepts",
-                        "iteration": 0,
-                        "tool": "multi_concept_generator",
-                    })
-
-                    mc_result = await _multi_concept_generate(
-                        llm_client=self._client,
-                        router=self._router,
-                        user_brief=user_message,
-                        rag_references=rag_references,
-                        user_preferences=user_preferences,
-                        num_concepts=3,
+                    success = await self._run_scene_driven_pipeline(
+                        user_message,
+                        temperature_boost=0.1 * (_attempt - 1),  # 0.0, 0.1, 0.2
                     )
-
-                    if "error" not in mc_result and mc_result.get("winner"):
-                        winning_plan = mc_result["winner"]
-                        logger.info(
-                            f"MultiConcept: winner=#{mc_result.get('winner_index', 0)+1} "
-                            f"({winning_plan.get('meta', {}).get('concept_name', '?')}), "
-                            f"rationale: {mc_result.get('rationale', '?')[:100]}"
-                        )
-
-                        await self._emit_event("concepts_ranked", {
-                            "total_concepts": len(mc_result.get("all_concepts", [])),
-                            "winner_index": mc_result.get("winner_index", 0),
-                            "winner_name": winning_plan.get("meta", {}).get("concept_name", "?"),
-                            "rationale": mc_result.get("rationale", "")[:200],
-                            "elapsed_seconds": mc_result.get("elapsed_seconds", 0),
-                        })
-                    else:
-                        logger.warning(f"MultiConcept failed: {mc_result.get('error', 'unknown')}")
+                    if success:
+                        logger.info(f"Scene-Driven pipeline SUCCEEDED on attempt {_attempt}")
+                        return
                 except Exception as e:
-                    logger.warning(f"MultiConcept pipeline failed: {e}")
+                    _last_error = e
+                    logger.warning(f"Scene-Driven attempt {_attempt} raised: {e}")
 
-            # Fallback: single Director concept
-            if not winning_plan and _director_available:
-                try:
-                    self._director = FrontendDirector(self._client, self._router)
-                    winning_plan = await self._director.create_scene_plan(
-                        user_brief=user_message,
-                        rag_references=rag_references,
-                        user_preferences=user_preferences,
-                    )
-                    if "error" in winning_plan:
-                        logger.warning(f"Single Director failed: {winning_plan['error']}")
-                        winning_plan = None
-                    else:
-                        logger.info("Single Director: scene plan created as fallback")
-                except Exception as e:
-                    logger.warning(f"Single Director failed: {e}")
-                    winning_plan = None
+                if _attempt < _MAX_RETRIES:
+                    _delay = 2 * _attempt  # 2s, 4s
+                    logger.warning(f"Scene-Driven failed on attempt {_attempt}, waiting {_delay}s before retry...")
+                    await _asyncio.sleep(_delay)
 
-            if not winning_plan:
-                logger.warning("No scene plan generated. Agent will proceed with its own creative direction.")
-                return
+            # ═══ All retries exhausted — inject minimal scene guidance ═══
+            # Instead of letting the LLM go freestyle (the old hidden from-scratch path),
+            # we inject a structured fallback prompt so the agent at least follows
+            # a consistent section structure.
+            logger.error(
+                f"SCENE-DRIVEN PIPELINE FAILED after {_MAX_RETRIES} attempts. "
+                f"Last error: {_last_error}. Injecting minimal scene guidance."
+            )
+            await self._emit_event("warning", {
+                "message": f"Scene pipeline failed after {_MAX_RETRIES} attempts. Using minimal guidance.",
+            })
 
-            self._scene_plan = winning_plan
-
-            # ═══ Step 3: Convert scene plan to coder prompt and inject ═══
-            if _director_available:
-                if not self._director:
-                    self._director = FrontendDirector(self._client, self._router)
-                coder_prompt = self._director.scene_plan_to_coder_prompt(self._scene_plan)
-            else:
-                # Minimal conversion if Director not available
-                import json as _json
-                coder_prompt = _json.dumps(self._scene_plan, indent=2, ensure_ascii=False)
-
-            if coder_prompt:
-                # Build the injection message
-                injection_parts = ["SCENE PLAN FROM ART DIRECTOR — FOLLOW THIS EXACTLY:\n"]
-                injection_parts.append(coder_prompt)
-
-                # Add visual context if available
-                if visual_context:
-                    injection_parts.append(f"\nSTYLE ANALYSIS FROM REFERENCE SITES:\n{visual_context}")
-
-                injection_parts.append(
-                    "\nYou MUST follow this scene plan precisely. Do NOT deviate from the "
-                    "specified colors, typography, sections, or content. The Art Director "
-                    "has already made all creative decisions — your job is to implement "
-                    "them with pixel-perfect precision in a single HTML file."
-                )
-
-                self._messages.append({
-                    "role": "user",
-                    "content": "\n".join(injection_parts),
-                })
-
-                # Save scene plan to scratchpad for persistence
-                self._scratchpad.update(
-                    "scene_plan_summary",
-                    f"Design: {self._scene_plan.get('meta', {}).get('design_family', '?')}, "
-                    f"Concept: {self._scene_plan.get('meta', {}).get('concept_name', '?')}, "
-                    f"Sections: {len(self._scene_plan.get('sections', []))}, "
-                    f"Palette: {self._scene_plan.get('palette', {}).get('accent', '?')}"
-                )
-
-                await self._emit_event("scene_plan_created", {
-                    "design_family": self._scene_plan.get("meta", {}).get("design_family", "?"),
-                    "concept_name": self._scene_plan.get("meta", {}).get("concept_name", "?"),
-                    "sections_count": len(self._scene_plan.get("sections", [])),
-                    "mood": self._scene_plan.get("meta", {}).get("mood", []),
-                    "accent_color": self._scene_plan.get("palette", {}).get("accent", "?"),
-                    "used_multi_concept": _multi_concept_available,
-                    "used_visual_rag": _visual_rag_available,
-                })
-
-                logger.info(
-                    f"Creative direction pipeline complete — "
-                    f"{len(self._scene_plan.get('sections', []))} sections, "
-                    f"family={self._scene_plan.get('meta', {}).get('design_family', '?')}, "
-                    f"multi_concept={'yes' if _multi_concept_available else 'no'}, "
-                    f"visual_rag={'yes' if _visual_rag_available else 'no'}"
-                )
+            # Minimal structured guidance — NOT the old coder_prompt, but a section skeleton
+            # This ensures the agent at least produces consistent structure
+            self._messages.append({
+                "role": "user",
+                "content": (
+                    "SCENE PIPELINE FALLBACK — FOLLOW THIS STRUCTURE:\n\n"
+                    "The automated scene pipeline could not generate templates. "
+                    "Create a SINGLE HTML file with these MANDATORY sections in order:\n"
+                    "1. HERO — full-width, background image, headline + CTA button\n"
+                    "2. ABOUT / FEATURES — 3-4 cards or columns\n"
+                    "3. SERVICES / PORTFOLIO — grid layout\n"
+                    "4. TESTIMONIALS — 2-3 client quotes\n"
+                    "5. CTA — call-to-action banner\n"
+                    "6. CONTACTS — address, phone, email, map placeholder\n"
+                    "7. FOOTER — copyright, social links\n\n"
+                    "Requirements:\n"
+                    "- Mobile-first responsive (works on 360px+)\n"
+                    "- Use Google Fonts (not system fonts)\n"
+                    "- Professional color palette (NOT random)\n"
+                    "- Real placeholder content in Russian (NO lorem ipsum)\n"
+                    "- All images via Unsplash (https://images.unsplash.com/...)\n"
+                    "- GSAP ScrollTrigger animations\n"
+                    "- Semantic HTML5 structure\n"
+                ),
+            })
+            self._scratchpad.update(
+                "scene_plan_summary",
+                f"FALLBACK: scene pipeline failed after {_MAX_RETRIES} attempts, using minimal guidance"
+            )
 
         except Exception as e:
-            logger.warning(f"Creative direction pipeline failed (non-fatal): {e}")
+            logger.error(f"FrontendDirector FATAL: {e}")
+            import traceback as _tb
+            logger.debug(_tb.format_exc())
             self._scene_plan = None
+
 
     async def run(self, user_message: str) -> dict:
         """

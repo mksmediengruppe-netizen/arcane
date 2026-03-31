@@ -193,7 +193,7 @@ class TestScenePlanner:
         with patch('workers.scene_planner._retrieve_scene_ids_dynamic') as mock_retrieve:
             mock_retrieve.return_value = [
                 "hero.cinematic_fullbleed.v1",
-                "features.bento_premium.v1",
+                "features.bento_grid.v1",
                 "footer.authority_contact.v1",
             ]
             plan = await plan_page("Test", mock_llm, force_niche="restaurant")
@@ -465,19 +465,14 @@ class TestArtifactURLContract:
 # 10. SCENE PIPELINE IS DEFAULT
 # ═══════════════════════════════════════════════════════════════════
 class TestScenePipelineDefault:
-    def test_legacy_disabled_by_default(self):
-        """DoD-1: Legacy path should be disabled by default"""
-        # Feature flag is in config/settings.py ArcaneConfig dataclass
+    def test_legacy_removed_after_cutover(self):
+        """Cutover v1: Legacy path has been completely removed from config"""
         from config.settings import ArcaneConfig
-        import os
-        # Ensure env var is not set (default)
-        old_val = os.environ.pop('FEATURE_FLAG_LEGACY_CODER', None)
-        try:
-            cfg = ArcaneConfig()
-            assert cfg.legacy_coder_enabled == False, "legacy_coder_enabled should default to False"
-        finally:
-            if old_val is not None:
-                os.environ['FEATURE_FLAG_LEGACY_CODER'] = old_val
+        cfg = ArcaneConfig()
+        # legacy_coder_enabled should no longer exist as an attribute
+        assert not hasattr(cfg, 'legacy_coder_enabled'), (
+            "legacy_coder_enabled should be removed after cutover v1"
+        )
     
     def test_scene_pipeline_is_primary(self):
         """Scene pipeline should be attempted first"""

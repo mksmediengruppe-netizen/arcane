@@ -150,7 +150,7 @@ class ArcaneConfig:
     workspace_root: str = os.getenv("ARCANE_WORKSPACE_ROOT", "/root/workspace")
 
     # Phase 5: Feature flags for migration control
-    legacy_coder_enabled: bool = os.getenv("FEATURE_FLAG_LEGACY_CODER", "false").lower() == "true"
+    # REMOVED: legacy_coder_enabled — cutover v1 (2026-03-31). Scene-only path is now default.
 
     # Cloudflared (already on server — used for expose_port)
     cloudflared_bin: str = os.getenv("CLOUDFLARED_BIN", "/usr/local/bin/cloudflared")

@@ -82,7 +82,7 @@ SECTION LAYOUT TYPES (use these exact names):
 - three_cards: 3 cards in a row (services, features, benefits)
 - four_cards: 4 cards in a grid
 - bento_grid: Asymmetric grid with mixed sizes (2x2, 1x2, 2x1)
-- stats_bar: Horizontal row of 3-5 statistics with numbers
+- stats_counters: Horizontal row of 3-5 statistics with numbers
 - testimonials_carousel: Client quotes with avatars
 - testimonials_grid: 2-3 testimonials in a grid layout
 - gallery_grid: Photo gallery in masonry or grid layout
@@ -390,10 +390,10 @@ class FrontendDirector:
             return {"error": f"Retry also failed: {e}"}
 
     def scene_plan_to_coder_prompt(self, scene_plan: dict) -> str:
-        """
-        Convert a scene plan into a detailed prompt for the Coder (orchestrator).
-        This is injected into the agent's context so it follows the plan exactly.
-        """
+        """DEPRECATED: No longer used in default flow since cutover v1 (2026-03-31).
+        Kept for backward compatibility only. Will be removed in next release."""
+        import warnings
+        warnings.warn("scene_plan_to_coder_prompt is deprecated since cutover v1", DeprecationWarning, stacklevel=2)
         if "error" in scene_plan:
             return ""
 

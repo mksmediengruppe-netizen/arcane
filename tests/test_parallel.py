@@ -24,7 +24,7 @@ import pytest_asyncio
 # ─── Fixtures ────────────────────────────────────────────────
 
 # Use DB 2 for tests to isolate from production worker pool on DB 1
-REDIS_URL = os.getenv("REDIS_TEST_URL", "redis://localhost:6379/2")
+REDIS_URL = os.getenv("REDIS_TEST_URL", "redis://localhost:6380/2")
 
 
 @pytest_asyncio.fixture

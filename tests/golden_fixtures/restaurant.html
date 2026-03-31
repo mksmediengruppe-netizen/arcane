@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вкус Рима в каждом кусочке</title>
+  <meta name="description" content="Свежие ингредиенты, традиционные рецепты и яркие вкусы — всё для вашего удовольствия.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <style>
+    :root {
+      --font-heading: 'DM Sans', 'Inter', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --font-serif: 'Playfair Display', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: var(--font-serif) !important; }
+    .font-sans { font-family: var(--font-heading) !important; }
+    .font-mono { font-family: 'JetBrains Mono', 'Fira Code', monospace !important; }
+    
+    /* Reveal animations — handled by GSAP, CSS is fallback only */
+    .no-js .reveal-on-scroll { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+    .no-js .reveal-on-scroll.revealed { opacity: 1; transform: translateY(0); }
+    .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+    
+    /* Marquee animation */
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-track { animation: marquee 30s linear infinite; }
+    .marquee-track:hover { animation-play-state: paused; }
+    
+    /* Gradient orbs */
+    .gradient-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; pointer-events: none; }
+    
+    /* Grain texture */
+    .grain-overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    /* Sticky nav */
+    .nav-sticky { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    
+    /* ═══ PREMIUM WOW EFFECTS ═══ */
+    
+    /* Smooth scroll via Lenis-like CSS */
+    html { scroll-behavior: smooth; }
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    
+    /* Custom cursor */
+    .custom-cursor { position: fixed; width: 20px; height: 20px; border: 2px solid currentColor; border-radius: 50%; pointer-events: none; z-index: 9999; transition: transform 0.15s ease, opacity 0.15s ease; mix-blend-mode: difference; color: white; }
+    .custom-cursor.hover { transform: scale(2.5); opacity: 0.5; }
+    
+    /* Text split animation */
+    .split-text .char { display: inline-block; opacity: 0; transform: translateY(40px) rotate(5deg); }
+    
+    /* Image reveal with clip-path */
+    .img-reveal { clip-path: inset(100% 0 0 0); transition: clip-path 1s cubic-bezier(0.77, 0, 0.175, 1); }
+    .img-reveal.revealed { clip-path: inset(0 0 0 0); }
+    
+    /* Magnetic button */
+    .magnetic-btn { position: relative; transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1); }
+    .magnetic-btn:hover { transform: scale(1.05); }
+    
+    /* 3D tilt card */
+    .tilt-card { transform-style: preserve-3d; transition: transform 0.5s ease; }
+    .tilt-card:hover { transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateZ(10px); }
+    
+    /* Gradient text */
+    .gradient-text { background: linear-gradient(135deg, var(--accent-1, #6366f1), var(--accent-2, #a855f7), var(--accent-3, #ec4899)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    
+    /* Glow effect */
+    .glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 60px rgba(99, 102, 241, 0.1); }
+    .glow:hover { box-shadow: 0 0 30px rgba(99, 102, 241, 0.5), 0 0 80px rgba(99, 102, 241, 0.2); }
+    
+    /* Floating animation */
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .float { animation: float 3s ease-in-out infinite; }
+    
+    /* Pulse ring */
+    @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+    .pulse-ring::before { content: ''; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid currentColor; animation: pulse-ring 2s ease-out infinite; }
+    
+    /* Scroll progress bar */
+    .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--accent-1, #6366f1), var(--accent-2, #a855f7)); z-index: 9999; transform-origin: left; transform: scaleX(0); }
+    
+    /* Horizontal scroll section */
+    .horizontal-scroll { display: flex; flex-wrap: nowrap; gap: 2rem; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .horizontal-scroll::-webkit-scrollbar { display: none; }
+    .horizontal-scroll > * { scroll-snap-align: start; flex-shrink: 0; }
+    
+    /* Glass card */
+    .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
+    
+    /* Shimmer loading */
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .shimmer { background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 2s infinite; }
+  </style>
+</head>
+<body class="bg-gray-950">
+
+<!-- NAVIGATION -->
+<nav class="nav-sticky bg-gray-900 border-white/10 border-b">
+  <div class="max-w-6xl mx-auto px-5 md:px-8 mx-auto flex items-center justify-between h-16">
+    <a href="#" class="text-white font-bold text-lg tracking-tight">Pizza Roma</a>
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#about" class="text-white text-sm hover:opacity-70 transition-opacity">О нас</a> <a href="#services" class="text-white text-sm hover:opacity-70 transition-opacity">Услуги</a> <a href="#gallery" class="text-white text-sm hover:opacity-70 transition-opacity">Галерея</a> <a href="#reviews" class="text-white text-sm hover:opacity-70 transition-opacity">Отзывы</a> <a href="#pricing" class="text-white text-sm hover:opacity-70 transition-opacity">Цены</a> <a href="#contact" class="text-white text-sm hover:opacity-70 transition-opacity">Контакты</a>
+    </div>
+    <a href="#contact" class="inline-flex items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25 text-sm">Заказать сейчас</a>
+  </div>
+</nav>
+
+<!-- SCENE: hero.cinematic_fullbleed.v1 -->
+<section id="hero" class="relative min-h-screen flex items-center overflow-hidden bg-gray-950">
+  
+
+  <!-- Background image with parallax -->
+  <div class="absolute inset-0 z-0" data-parallax>
+    <img
+      src="https://arcaneai.ru/demo/images/4e0859197177.png"
+      alt="Вкус Рима в каждом кусочке"
+      class="w-full h-full object-cover scale-110"
+      loading="eager"
+    />
+    <!-- Multi-layer gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/80"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent"></div>
+  </div>
+
+  <!-- Animated gradient orbs -->
+  <div class="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+    <div class="gradient-orb w-[500px] h-[500px] bg-violet-600/40 -top-32 -right-32" style="animation: orbit-1 18s ease-in-out infinite;"></div>
+    <div class="gradient-orb w-[350px] h-[350px] bg-blue-500/30 bottom-20 left-10" style="animation: orbit-2 22s ease-in-out infinite;"></div>
+    <div class="gradient-orb w-[250px] h-[250px] bg-fuchsia-500/20 top-1/2 left-1/3" style="animation: orbit-3 15s ease-in-out infinite;"></div>
+  </div>
+
+  <!-- Noise texture overlay -->
+  <div class="absolute inset-0 z-[2] grain-overlay pointer-events-none"></div>
+
+  <!-- Subtle grid lines -->
+  <div class="absolute inset-0 z-[2] pointer-events-none opacity-[0.04]"
+       style="background-image: linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px); background-size: 80px 80px;"></div>
+
+  <!-- Content -->
+  <div class="relative z-10 max-w-6xl mx-auto px-5 md:px-8 py-24 md:py-32">
+    <div class="max-w-3xl flex flex-col gap-8 reveal-on-scroll">
+
+      <!-- Kicker badge -->
+      <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white/90 text-xs font-semibold w-fit uppercase tracking-[0.2em]">
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        Настоящая итальянская пицца
+      </div>
+
+      <!-- Headline -->
+      <h1 class="font-sans font-black tracking-tighter text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white leading-[1.02] tracking-tight">
+        Вкус Рима в каждом кусочке
+      </h1>
+
+      <!-- Subheadline -->
+      <p class="font-sans font-normal leading-relaxed text-lg md:text-xl text-white/70 max-w-xl">
+        Свежие ингредиенты, традиционные рецепты и яркие вкусы — всё для вашего удовольствия.
+      </p>
+
+      <!-- CTA buttons -->
+      <div class="flex flex-wrap items-center gap-4 pt-2">
+        <a href="#contact"
+           class="inline-flex items-center justify-center rounded-full px-7 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/25 group relative overflow-hidden">
+          <span class="relative z-10">Заказать сейчас</span>
+          <span class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></span>
+        </a>
+        <a href="#about"
+           class="inline-flex items-center gap-2.5 px-6 py-3.5 text-sm font-medium text-white border border-white/25 rounded-xl hover:bg-white/10 hover:border-white/40 transition-all duration-300 backdrop-blur-sm">
+          Посмотреть меню
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+
+      <!-- Trust signals -->
+      <div class="flex flex-wrap items-center gap-6 pt-4 text-white/50 text-sm">
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Свежие продукты каждый день
+        </span>
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Бронирование онлайн
+        </span>
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Авторская кухня шеф-повара
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scroll indicator with pulse animation -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3 text-white/40">
+    <span class="text-[10px] uppercase tracking-[0.3em] font-medium">Прокрутить</span>
+    <div class="relative w-5 h-9 border border-white/30 rounded-full flex items-start justify-center p-1.5">
+      <div class="w-1 h-2 bg-white/60 rounded-full animate-bounce"></div>
+    </div>
+  </div>
+
+  <!-- Keyframes for orbs -->
+  <style>
+    @keyframes orbit-1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(-30px, 40px) scale(1.1); }
+      66% { transform: translate(20px, -20px) scale(0.95); }
+    }
+    @keyframes orbit-2 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, -30px) scale(1.15); }
+    }
+    @keyframes orbit-3 {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+      50% { transform: translate(-20px, 20px) scale(1.2); opacity: 0.35; }
+    }
+  </style>
+</section>
+
+<!-- SCENE: proof.stats_bar.v1 -->
+<section id="stats" class="relative bg-white py-12 md:py-16 overflow-hidden">
+  
+
+  <!-- Noise overlay -->
+  <div class="absolute inset-0 grain-overlay pointer-events-none z-[1]"></div>
+
+  <div class="max-w-7xl mx-auto px-5 md:px-8 relative z-10">
+
+    <!-- Optional section header -->
+    <div class="text-center mb-12 reveal-on-scroll">
+      <h2 class="font-sans font-black tracking-tighter text-2xl md:text-4xl text-gray-900 mb-3"></h2>
+      <p class="font-sans font-normal leading-snug text-base text-gray-500 max-w-lg mx-auto"></p>
+    </div>
+
+    <!-- Stats grid with dividers -->
+    <div class="border-t border-black/10 border-b border-gray-200 py-12 md:py-16">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 reveal-on-scroll">
+
+        <!-- Stat 1 -->
+        <div class="flex flex-col items-center gap-3 text-center group relative px-4">
+          <!-- Decorative accent dot -->
+          <div class="w-3 h-3 rounded-full bg-gradient-to-br bg-blue-600 mb-2 opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300"></div>
+          <span class="font-sans font-black tracking-tighter text-4xl md:text-5xl lg:text-6xl text-gray-900 tabular-nums" data-counter="10 000+">0</span>
+          <span class="font-sans font-normal leading-snug text-gray-500 text-sm md:text-base font-medium">Счастливых клиентов</span>
+          <span class="text-xs text-gray-500 opacity-60 max-w-[140px]"></span>
+          <!-- Vertical divider (hidden on mobile, shown between items on desktop) -->
+          <div class="absolute right-0 top-4 bottom-4 w-px border-gray-200 bg-current opacity-10 hidden md:block"></div>
+        </div>
+
+        <!-- Stat 2 -->
+        <div class="flex flex-col items-center gap-3 text-center group relative px-4">
+          <div class="w-3 h-3 rounded-full bg-gradient-to-br bg-blue-600 mb-2 opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300"></div>
+          <span class="font-sans font-black tracking-tighter text-4xl md:text-5xl lg:text-6xl text-gray-900 tabular-nums" data-counter="15">0</span>
+          <span class="font-sans font-normal leading-snug text-gray-500 text-sm md:text-base font-medium">Лет на рынке</span>
+          <span class="text-xs text-gray-500 opacity-60 max-w-[140px]"></span>
+          <div class="absolute right-0 top-4 bottom-4 w-px border-gray-200 bg-current opacity-10 hidden md:block"></div>
+        </div>
+
+        <!-- Stat 3 -->
+        <div class="flex flex-col items-center gap-3 text-center group relative px-4">
+          <div class="w-3 h-3 rounded-full bg-gradient-to-br bg-blue-600 mb-2 opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300"></div>
+          <span class="font-sans font-black tracking-tighter text-4xl md:text-5xl lg:text-6xl text-gray-900 tabular-nums" data-counter="50+">0</span>
+          <span class="font-sans font-normal leading-snug text-gray-500 text-sm md:text-base font-medium">Вкусных рецептов</span>
+          <span class="text-xs text-gray-500 opacity-60 max-w-[140px]"></span>
+          <div class="absolute right-0 top-4 bottom-4 w-px border-gray-200 bg-current opacity-10 hidden md:block"></div>
+        </div>
+
+        <!-- Stat 4 -->
+        <div class="flex flex-col items-center gap-3 text-center group relative px-4">
+          <div class="w-3 h-3 rounded-full bg-gradient-to-br bg-blue-600 mb-2 opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-300"></div>
+          <span class="font-sans font-black tracking-tighter text-4xl md:text-5xl lg:text-6xl text-gray-900 tabular-nums" data-counter="99%">0</span>
+          <span class="font-sans font-normal leading-snug text-gray-500 text-sm md:text-base font-medium">Довольных отзывов</span>
+          <span class="text-xs text-gray-500 opacity-60 max-w-[140px]"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom trust line -->
+    <div class="flex flex-wrap items-center justify-center gap-6 pt-8 text-gray-500 text-xs reveal-on-scroll">
+      <span class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Проверено временем
+      </span>
+      <span class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Быстрый результат
+      </span>
+      <span class="flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+        Высший рейтинг
+      </span>
+    </div>
+
+  </div>
+</section>
+
+<!-- SCENE: about.split_image.v1 -->
+<section class="relative   overflow-hidden" id="about">
+  
+  
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <div class="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+      
+      <!-- Image side -->
+      <div class="relative">
+        <div class="relative rounded-2xl overflow-hidden aspect-[4/5]">
+          <img
+            src="https://arcaneai.ru/demo/images/70444e923331.png"
+            alt="Pizza Roma — традиции и качество"
+            class="w-full h-full object-cover img-reveal"
+            loading="lazy"
+          />
+        </div>
+        <!-- Floating accent card -->
+        <div class="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6  text-white rounded-2xl p-4 md:p-6 shadow-xl">
+          <span class="block text-2xl md:text-3xl font-black">98%</span>
+          <span class="text-xs md:text-sm opacity-80">Клиентов довольны</span>
+        </div>
+      </div>
+      
+      <!-- Text side -->
+      <div class="flex flex-col gap-6">
+        <span class="inline-block text-xs font-medium  uppercase tracking-widest">О нас</span>
+        <h2 class="font-sans font-bold text-3xl md:text-4xl  leading-tight">
+          Pizza Roma — традиции и качество
+        </h2>
+        <p class="font-sans font-normal text-base  leading-relaxed">
+          Мы создаём пиццу с душой, используя только лучшие ингредиенты и проверенные временем рецепты.
+        </p>
+        
+        <!-- Feature highlights -->
+        <div class="grid grid-cols-2 gap-4 pt-4">
+          
+        </div>
+        
+        <div class="pt-2">
+          <a href="#contact" class="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            Забронировать столик
+          </a>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<!-- SCENE: features.editorial_cards.v1 -->
+<section id="services" class="bg-stone-50 py-20 md:py-32 relative overflow-hidden">
+  
+  <!-- Subtle grid background -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.03]"
+       style="background-image: linear-gradient(to right, currentColor 1px, transparent 1px),
+              linear-gradient(to bottom, currentColor 1px, transparent 1px);
+              background-size: 48px 48px;"></div>
+
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="max-w-xl mb-14 reveal-on-scroll">
+      <div class="w-10 h-1 bg-amber-600 rounded-full mb-5"></div>
+      <h2 class="font-serif font-semibold tracking-tight text-3xl md:text-5xl text-stone-900 leading-tight mb-4">
+        Наше меню
+      </h2>
+      <p class="font-serif font-normal leading-loose text-lg text-stone-500 max-w-lg leading-relaxed">
+        Выберите свою идеальную пиццу из лучших вариантов.
+      </p>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 reveal-on-scroll">
+      
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-3">
+          <i data-lucide="heart" class="w-6 h-6"></i>
+          <h3 class="font-semibold text-lg">Маргарита</h3>
+          <p class="text-sm opacity-70 leading-relaxed">Классика с томатным соусом, моцареллой и свежим базиликом.</p>
+        </div>
+
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-3">
+          <i data-lucide="zap" class="w-6 h-6"></i>
+          <h3 class="font-semibold text-lg">Пепперони</h3>
+          <p class="text-sm opacity-70 leading-relaxed">Острая пицца с пепперони, сыром и томатным соусом.</p>
+        </div>
+
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-3">
+          <i data-lucide="layers" class="w-6 h-6"></i>
+          <h3 class="font-semibold text-lg">Четыре сыра</h3>
+          <p class="text-sm opacity-70 leading-relaxed">Насыщенный вкус с моцареллой, пармезаном, горгонзолой и эмменталем.</p>
+        </div>
+
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-3">
+          <i data-lucide="globe" class="w-6 h-6"></i>
+          <h3 class="font-semibold text-lg">Вегетарианская</h3>
+          <p class="text-sm opacity-70 leading-relaxed">Свежие овощи, ароматные травы и нежный сыр для лёгкого вкуса.</p>
+        </div>
+    </div>
+
+    <!-- Bottom accent line -->
+    <div class="mt-16 flex items-center gap-4 reveal-on-scroll">
+      <div class="h-px flex-1 border-stone-200"></div>
+      <span class="font-serif font-normal leading-loose text-xs text-stone-500 uppercase tracking-[0.2em]">
+        Гастрономическое удовольствие
+      </span>
+      <div class="h-px flex-1 border-stone-200"></div>
+    </div>
+  </div>
+
+  <!-- GSAP scroll-trigger animations -->
+  <style>
+    .feature-card {
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+    }
+    .feature-card .card-icon {
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .feature-card:hover .card-icon {
+      transform: scale(1.15) rotate(-3deg);
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.feature-card').forEach(function(card, i) {
+          gsap.from(card, {
+            scrollTrigger: { trigger: card, start: 'top 88%', toggleActions: 'play none none none' },
+            opacity: 0,
+            y: 40,
+            duration: 0.6,
+            delay: i * 0.12,
+            ease: 'power2.out'
+          });
+        });
+      }
+    });
+  </script>
+</section>
+
+<!-- SCENE: parallax.quote.v1 -->
+<section class="relative min-h-[50vh] flex items-center justify-center overflow-hidden">
+  <!-- Parallax Background -->
+  <div class="absolute inset-0 z-0" data-parallax>
+    <img
+      src="https://arcaneai.ru/demo/images/9d4cee428048.png"
+      alt=""
+      class="w-full h-full object-cover scale-110"
+      loading="lazy"
+    />
+    <div class="absolute inset-0 bg-black/60"></div>
+  </div>
+  
+  <!-- Quote Content -->
+  <div class="relative z-10 max-w-6xl mx-auto px-5 md:px-8 py-20 text-center">
+    <div class="max-w-3xl mx-auto flex flex-col items-center gap-6">
+      <svg class="w-12 h-12 text-white/30" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983z"/>
+      </svg>
+      <blockquote class="font-serif text-2xl md:text-4xl text-white leading-relaxed italic">
+        
+      </blockquote>
+      <cite class="text-white/60 text-sm not-italic uppercase tracking-widest">
+        — 
+      </cite>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE: gallery.masonry_grid.v1 -->
+<section id="gallery" class="relative   overflow-hidden">
+  
+  
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <span class="inline-block text-xs font-medium  uppercase tracking-widest mb-4">Портфолио</span>
+      <h2 class="font-sans font-bold text-3xl md:text-5xl  leading-tight mb-4">
+        Галерея наших пицц
+      </h2>
+      <p class="font-sans font-normal text-lg  max-w-2xl mx-auto">
+        Взгляните на наши шедевры — яркие, аппетитные и свежие.
+      </p>
+    </div>
+    
+    <!-- Gallery Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+      
+    </div>
+  </div>
+</section>
+
+<!-- SCENE: testimonials.quote_wall.v1 -->
+<section id="reviews" class="bg-white py-20 md:py-32 relative overflow-hidden">
+  
+  <!-- Decorative quote mark -->
+  <div class="absolute top-12 right-8 md:right-16 pointer-events-none opacity-[0.04] select-none">
+    <svg class="w-48 h-48 md:w-64 md:h-64 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151C7.546 6.068 5.983 8.789 5.983 11H10v10H0z"/>
+    </svg>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <!-- Section header -->
+    <div class="text-center mb-14 reveal-on-scroll">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-50 border-gray-200 border text-xs font-semibold text-blue-600 uppercase tracking-[0.15em] mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        Гастрономическое удовольствие
+      </div>
+      <h2 class="font-serif font-semibold tracking-tight text-3xl md:text-4xl text-gray-900 mb-3">
+        
+      </h2>
+      <p class="font-serif font-normal leading-loose text-gray-500 max-w-md mx-auto leading-relaxed">
+        
+      </p>
+    </div>
+
+    <!-- Testimonials masonry grid -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 reveal-on-scroll">
+      
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-4">
+          <p class="text-base leading-relaxed italic">&ldquo;Люблю Pizza Roma за настоящие итальянские вкусы и быструю доставку. Всегда горячо и вкусно!&rdquo;</p>
+          <div class="flex flex-col gap-0.5">
+            <span class="font-semibold text-sm">Игорь Кузнецов</span>
+            <span class="text-xs opacity-60">Фанат пиццы</span>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-4">
+          <p class="text-base leading-relaxed italic">&ldquo;Отличное качество и сервис. Пицца всегда свежая, а выбор позволяет найти что-то на любой вкус.&rdquo;</p>
+          <div class="flex flex-col gap-0.5">
+            <span class="font-semibold text-sm">Марина Петрова</span>
+            <span class="text-xs opacity-60">Регулярный клиент</span>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-6 flex flex-col gap-4">
+          <p class="text-base leading-relaxed italic">&ldquo;Pizza Roma — моя любимая пиццерия в городе. Рекомендую всем, кто ценит настоящий вкус Италии.&rdquo;</p>
+          <div class="flex flex-col gap-0.5">
+            <span class="font-semibold text-sm">Дмитрий Иванов</span>
+            <span class="text-xs opacity-60">Гурман</span>
+          </div>
+        </div>
+    </div>
+
+    <!-- Trust indicators -->
+    <div class="mt-14 flex flex-wrap items-center justify-center gap-8 reveal-on-scroll">
+      <div class="flex items-center gap-2 text-gray-500">
+        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <span class="font-serif font-normal leading-loose text-sm font-medium"></span>
+      </div>
+      <div class="h-4 w-px border-gray-200 hidden md:block"></div>
+      <span class="font-serif font-normal leading-loose text-sm text-gray-500"></span>
+    </div>
+  </div>
+
+  <!-- Testimonial card styles and animations -->
+  <style>
+    .testimonial-card {
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                  box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .testimonial-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px -8px rgba(0,0,0,0.12);
+    }
+    .testimonial-card .quote-icon {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      opacity: 0.3;
+    }
+    .testimonial-card:hover .quote-icon {
+      opacity: 0.6;
+      transform: scale(1.1);
+    }
+    .testimonial-avatar {
+      transition: transform 0.3s ease;
+    }
+    .testimonial-card:hover .testimonial-avatar {
+      transform: scale(1.08);
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.utils.toArray('.testimonial-card').forEach(function(card, i) {
+          gsap.from(card, {
+            scrollTrigger: { trigger: card, start: 'top 88%', toggleActions: 'play none none none' },
+            opacity: 0,
+            y: 30,
+            scale: 0.97,
+            duration: 0.5,
+            delay: i * 0.1,
+            ease: 'power2.out'
+          });
+        });
+      }
+    });
+  </script>
+</section>
+
+<!-- SCENE: pricing.cards.v1 -->
+<section class="relative   overflow-hidden" id="pricing">
+  
+  
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <span class="inline-block text-xs font-medium  uppercase tracking-widest mb-4">Стоимость</span>
+      <h2 class="font-sans font-bold text-3xl md:text-5xl  leading-tight mb-4">
+        Наше меню и цены
+      </h2>
+      <p class="font-sans font-normal text-lg  max-w-2xl mx-auto">
+        Прозрачные цены на все виды пиццы — без сюрпризов.
+      </p>
+    </div>
+    
+    <!-- Pricing Cards -->
+    <div class="grid md:grid-cols-3 ">
+      
+    </div>
+  </div>
+</section>
+
+<!-- SCENE: cta.executive_split.v1 -->
+<section class="relative bg-gray-950 py-16 md:py-24 overflow-hidden" id="contact">
+  
+  <!-- Gradient orbs -->
+  <div class="gradient-orb w-80 h-80 bg-blue-500 -top-20 -right-20 opacity-20"></div>
+  <div class="gradient-orb w-60 h-60 bg-violet-500 bottom-0 left-10 opacity-15"></div>
+  
+  <div class="max-w-6xl mx-auto px-5 md:px-8 relative z-10">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      
+      <!-- Left: text -->
+      <div class="flex flex-col gap-6 reveal-on-scroll">
+        <h2 class="font-serif font-semibold tracking-tight text-3xl md:text-5xl text-white leading-tight">
+          Готовы попробовать настоящую итальянскую пиццу?
+        </h2>
+        <p class="font-sans font-normal leading-relaxed text-lg text-gray-400">
+          Закажите сейчас и почувствуйте вкус Рима у себя дома.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="#contact" class="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            Заказать пиццу
+          </a>
+        </div>
+        <!-- Trust note -->
+        <p class="text-xs text-gray-400">✓ Бесплатная консультация · ✓ Без обязательств · ✓ Ответим быстро</p>
+      </div>
+      
+      <!-- Right: contact form -->
+      <div class="rounded-3xl border border-black/5 bg-white/80 backdrop-blur-sm p-8 reveal-on-scroll hover-lift">
+        <h3 class="font-serif font-semibold tracking-tight text-xl text-white mb-6">Оставьте заявку</h3>
+        <form class="flex flex-col gap-4" onsubmit="return false;">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">Ваше имя</label>
+            <input type="text" placeholder="Иван Иванов" class="w-full px-4 py-3 rounded-xl border-white/10 border bg-gray-950 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">Телефон</label>
+            <input type="tel" placeholder="+7 (999) 000-00-00" class="w-full px-4 py-3 rounded-xl border-white/10 border bg-gray-950 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-xs font-medium text-gray-400 uppercase tracking-wide">Сообщение</label>
+            <textarea rows="3" placeholder="Опишите вашу ситуацию..." class="w-full px-4 py-3 rounded-xl border-white/10 border bg-gray-950 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all resize-none"></textarea>
+          </div>
+          <button type="submit" class="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors w-full">
+            Отправить заявку
+          </button>
+          <p class="text-xs text-gray-400 text-center">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности</p>
+        </form>
+      </div>
+      
+    </div>
+  </div>
+</section>
+
+<!-- SCENE: footer.authority_contact.v1 -->
+<footer id="footer" class="bg-gray-950 py-16 md:py-24 border-t border-black/10">
+  <div class="max-w-7xl mx-auto px-5 md:px-8">
+    <div class="grid md:grid-cols-3 gap-6 md:gap-10 mb-12">
+      
+      <!-- Brand column -->
+      <div class="flex flex-col gap-4">
+        <a href="#" class="font-sans font-bold tracking-tight text-xl text-white">Pizza Roma</a>
+        <p class="font-sans font-normal leading-snug text-sm text-gray-400 leading-relaxed max-w-xs">
+          Профессиональные услуги с гарантией результата. Работаем честно и прозрачно.
+        </p>
+        <div class="flex gap-3 text-sm text-gray-400">
+          <a href="#" class="hover:opacity-70 transition-opacity">✈️ Telegram</a> · <a href="#" class="hover:opacity-70 transition-opacity">🔵 Vk</a>
+        </div>
+      </div>
+      
+      <!-- Contacts column -->
+      <div class="flex flex-col gap-4">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Контакты</h3>
+        <div class="flex flex-col gap-3">
+          <a href="tel:+7 (495) 123-45-67" class="flex items-center gap-2 text-sm text-white hover:text-violet-400 transition-colors">
+            <i data-lucide="phone" class="w-5 h-5 opacity-80"></i>
+            +7 (495) 123-45-67
+          </a>
+          <a href="mailto:info@pizzaroma.ru" class="flex items-center gap-2 text-sm text-white hover:text-violet-400 transition-colors">
+            <i data-lucide="mail" class="w-5 h-5 opacity-80"></i>
+            info@pizzaroma.ru
+          </a>
+          <div class="flex items-start gap-2 text-sm text-gray-400">
+            <i data-lucide="map-pin" class="w-5 h-5 opacity-80 mt-0.5 flex-shrink-0"></i>
+            <span>г. Москва, ул. Арбат, д. 12</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation column -->
+      <div class="flex flex-col gap-4">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Навигация</h3>
+        <nav class="flex flex-col gap-2">
+          <a href="#about" class="text-sm text-white hover:text-violet-400 transition-colors">О нас</a>
+          <a href="#services" class="text-sm text-white hover:text-violet-400 transition-colors">Услуги</a>
+          <a href="#gallery" class="text-sm text-white hover:text-violet-400 transition-colors">Галерея</a>
+          <a href="#reviews" class="text-sm text-white hover:text-violet-400 transition-colors">Отзывы</a>
+          <a href="#pricing" class="text-sm text-white hover:text-violet-400 transition-colors">Цены</a>
+          <a href="#contact" class="text-sm text-white hover:text-violet-400 transition-colors">Контакты</a>
+        </nav>
+      </div>
+      
+    </div>
+    
+    <!-- Bottom bar -->
+    <div class="border-t border-black/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-xs text-gray-400">© 2024 Pizza Roma. Все права защищены.</p>
+      <div class="flex gap-6 text-xs text-gray-400">
+        <a href="#" class="hover:text-violet-400 transition-colors">Политика конфиденциальности</a>
+        <a href="#" class="hover:text-violet-400 transition-colors">Пользовательское соглашение</a>
+      </div>
+    </div>
+    
+  </div>
+</footer>
+
+<!-- GSAP ScrollTrigger + Reveal Script -->
+<script>
+(function() {
+  // Remove no-js class (used for CSS-only fallback)
+  document.documentElement.classList.remove('no-js');
+
+  // Init Lucide icons
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+
+  // Register GSAP plugins
+  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+    // GSAP not loaded — use CSS fallback
+    document.documentElement.classList.add('no-js');
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => el.classList.add('revealed'));
+    return;
+  }
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Reveal inner elements with reveal-on-scroll class
+  document.querySelectorAll('.reveal-on-scroll').forEach((el, i) => {
+    gsap.from(el, {
+      opacity: 0, y: 30, duration: 0.7, delay: i * 0.05,
+      ease: 'power2.out',
+      scrollTrigger: { trigger: el, start: 'top 90%', toggleActions: 'play none none none' }
+    });
+  });
+
+  // Stagger cards within grids
+  document.querySelectorAll('.grid, .flex.flex-wrap').forEach(grid => {
+    const cards = grid.querySelectorAll(':scope > div, :scope > article');
+    if (cards.length > 1) {
+      gsap.from(cards, {
+        opacity: 0, y: 30, duration: 0.6, stagger: 0.12, ease: 'power2.out',
+        scrollTrigger: { trigger: grid, start: 'top 88%' }
+      });
+    }
+  });
+
+  // Animated counters (data-counter="340")
+  document.querySelectorAll('[data-counter]').forEach(el => {
+    const raw = el.dataset.counter;
+    const target = parseInt(raw);
+    if (isNaN(target)) { el.textContent = raw; return; }
+    const suffix = raw.replace(/[0-9,. ]+/, '');
+    el.textContent = '0';
+    ScrollTrigger.create({
+      trigger: el, start: 'top 90%',
+      onEnter: () => {
+        gsap.to({val: 0}, {
+          val: target, duration: 2, ease: 'power2.out',
+          onUpdate: function() {
+            el.textContent = Math.round(this.targets()[0].val).toLocaleString('ru-RU') + suffix;
+          }
+        });
+      }, once: true
+    });
+  });
+
+  // Parallax hero backgrounds
+  document.querySelectorAll('[data-parallax]').forEach(el => {
+    gsap.to(el, {
+      yPercent: 20, ease: 'none',
+      scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true }
+    });
+  });
+
+  // ═══ PREMIUM WOW EFFECTS ═══
+
+  // 1. Custom cursor (desktop only)
+  if (window.innerWidth > 768) {
+    const cursor = document.createElement('div');
+    cursor.className = 'custom-cursor';
+    document.body.appendChild(cursor);
+    document.addEventListener('mousemove', e => {
+      cursor.style.left = e.clientX - 10 + 'px';
+      cursor.style.top = e.clientY - 10 + 'px';
+    });
+    document.querySelectorAll('a, button, [role=button], .hover-lift, .tilt-card').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+      el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+    });
+  }
+
+  // 2. Text split animation for hero headings
+  document.querySelectorAll('.split-text, h1').forEach(heading => {
+    if (heading.classList.contains('split-done')) return;
+    heading.classList.add('split-done');
+    const text = heading.textContent;
+    heading.innerHTML = '';
+    text.split('').forEach((char, i) => {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = char === ' ' ? ' ' : char;
+      span.style.display = 'inline-block';
+      heading.appendChild(span);
+    });
+    gsap.to(heading.querySelectorAll('.char'), {
+      opacity: 1, y: 0, rotation: 0, duration: 0.6, stagger: 0.02, ease: 'power3.out',
+      scrollTrigger: { trigger: heading, start: 'top 85%' }
+    });
+  });
+
+  // 3. Image reveal with clip-path
+  document.querySelectorAll('.img-reveal, section img').forEach(img => {
+    if (img.closest('nav')) return;
+    gsap.fromTo(img, 
+      { clipPath: 'inset(100% 0 0 0)' },
+      { clipPath: 'inset(0% 0 0 0)', duration: 1.2, ease: 'power4.out',
+        scrollTrigger: { trigger: img, start: 'top 90%' }
+      }
+    );
+  });
+
+  // 4. Magnetic buttons
+  document.querySelectorAll('.magnetic-btn, a[class*="rounded"][class*="px"]').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left - rect.width / 2;
+      const y = e.clientY - rect.top - rect.height / 2;
+      btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px) scale(1.05)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+
+  // 5. Scroll progress bar
+  const progressBar = document.createElement('div');
+  progressBar.className = 'scroll-progress';
+  document.body.appendChild(progressBar);
+  gsap.to(progressBar, {
+    scaleX: 1, ease: 'none',
+    scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: true }
+  });
+
+  // 6. 3D tilt on cards
+  document.querySelectorAll('.tilt-card, .hover-lift').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform = `perspective(1000px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg) translateZ(10px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
+  });
+
+  // 7. Smooth nav background on scroll
+  const nav = document.querySelector('nav');
+  if (nav) {
+    ScrollTrigger.create({
+      start: 'top -80',
+      onUpdate: self => {
+        if (self.direction === 1) nav.style.boxShadow = '0 4px 30px rgba(0,0,0,0.1)';
+        else nav.style.boxShadow = 'none';
+      }
+    });
+  }
+
+  // 8. Floating gradient orbs animation
+  document.querySelectorAll('.gradient-orb').forEach((orb, i) => {
+    gsap.to(orb, {
+      x: `random(-50, 50)`, y: `random(-30, 30)`,
+      duration: `random(4, 8)`, ease: 'sine.inOut',
+      repeat: -1, yoyo: true, delay: i * 0.5
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

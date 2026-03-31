@@ -143,7 +143,7 @@ FORCE_DARK_SCENES: set[str] = {
 
 # Scenes that should ALWAYS use the light/primary variant
 FORCE_LIGHT_SCENES: set[str] = {
-    "proof.stats_bar.v1",
+    "proof.stats_counters.v1",
     "testimonials.quote_wall.v1",
 }
 
@@ -171,7 +171,7 @@ NICHE_SECTION_SEQUENCE: dict[str, list[str]] = {
 NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     "restaurant": [
         "hero.cinematic_fullbleed.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
         "features.editorial_cards.v1",
         "parallax.quote.v1",
@@ -183,8 +183,8 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "fitness": [
         "hero.cinematic_fullbleed.v1",
-        "proof.stats_bar.v1",
-        "features.bento_premium.v1",
+        "proof.stats_counters.v1",
+        "features.bento_grid.v1",
         "parallax.quote.v1",
         "about.split_image.v1",
         "trust.comparison_block.v1",
@@ -196,7 +196,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "beauty": [
         "hero.cinematic_fullbleed.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
         "features.editorial_cards.v1",
         "parallax.quote.v1",
@@ -210,7 +210,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
         "hero.editorial_split.v1",
         "trust.authority_facts_rail.v1",
         "about.split_image.v1",
-        "features.process_timeline.v1",
+        "features.timeline_process.v1",
         "parallax.quote.v1",
         "gallery.masonry_grid.v1",
         "trust.case_grid.v1",
@@ -222,7 +222,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
         "hero.legal_authority.v1",
         "trust.authority_facts_rail.v1",
         "about.split_image.v1",
-        "features.process_timeline.v1",
+        "features.timeline_process.v1",
         "trust.comparison_block.v1",
         "testimonials.quote_wall.v1",
         "cta.executive_split.v1",
@@ -240,8 +240,8 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "saas": [
         "hero.product_showcase.v1",
-        "proof.stats_bar.v1",
-        "features.bento_premium.v1",
+        "proof.stats_counters.v1",
+        "features.bento_grid.v1",
         "parallax.quote.v1",
         "about.split_image.v1",
         "trust.comparison_block.v1",
@@ -254,7 +254,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
         "hero.legal_authority.v1",
         "trust.authority_facts_rail.v1",
         "about.split_image.v1",
-        "features.process_timeline.v1",
+        "features.timeline_process.v1",
         "trust.case_grid.v1",
         "testimonials.quote_wall.v1",
         "cta.executive_split.v1",
@@ -262,7 +262,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "education": [
         "hero.editorial_split.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
         "features.editorial_cards.v1",
         "parallax.quote.v1",
@@ -273,7 +273,7 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "hospitality": [
         "hero.cinematic_fullbleed.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
         "features.editorial_cards.v1",
         "parallax.quote.v1",
@@ -285,9 +285,9 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "luxury_service": [
         "hero.cinematic_fullbleed.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
-        "features.bento_premium.v1",
+        "features.bento_grid.v1",
         "parallax.quote.v1",
         "gallery.masonry_grid.v1",
         "testimonials.marquee.v1",
@@ -297,9 +297,9 @@ NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     ],
     "default": [
         "hero.editorial_split.v1",
-        "proof.stats_bar.v1",
+        "proof.stats_counters.v1",
         "about.split_image.v1",
-        "features.bento_premium.v1",
+        "features.bento_grid.v1",
         "parallax.quote.v1",
         "trust.authority_facts_rail.v1",
         "testimonials.quote_wall.v1",
@@ -413,7 +413,7 @@ hero scenes:
   - hero_media_url: Pexels search query for hero image (e.g. "modern office technology team")
   - kicker: short badge text above headline (e.g. "AI-платформа нового поколения")
 
-features scenes (features.bento_premium, features.editorial_cards, features.process_timeline):
+features scenes (features.bento_grid, features.editorial_cards, features.timeline_process):
   - headline: section title (e.g. "Наши возможности")
   - subheadline: 1 sentence description
   - features: array of EXACTLY 4-6 objects, each with:
@@ -432,7 +432,7 @@ trust.comparison_block:
   - before_items: array of 3-4 strings (problems without the product)
   - after_items: array of 3-4 strings (benefits with the product)
 
-proof.stats_bar:
+proof.stats_counters:
   - stats: array of 4 objects with {{value: "500+", label: "Проектов"}}
 
 testimonials scenes:
@@ -769,12 +769,14 @@ def _retrieve_scene_ids_dynamic(
     niche: str,
     theme: str,
     style_tags: list[str] | None = None,
+    user_brief: str = "",
 ) -> list[str]:
     """
-    Dynamically retrieve best scene_ids for a niche using component_retriever.
+    Dynamically retrieve best scene_ids for a niche using semantic component_retriever.
     Falls back to NICHE_SCENE_TEMPLATES if retriever fails.
     
-    Anti-clone: tracks used scene_ids to avoid duplicates within same section_type.
+    Uses user_brief for semantic embedding similarity.
+    Anti-clone: passes used_ids to retriever to penalize duplicates.
     """
     section_types = NICHE_SECTION_SEQUENCE.get(niche, NICHE_SECTION_SEQUENCE["default"])
     scene_ids: list[str] = []
@@ -782,20 +784,29 @@ def _retrieve_scene_ids_dynamic(
     
     for section_type in section_types:
         try:
+            # Semantic retrieval with anti-clone
             meta = _retrieve_best(
                 section_type,
+                query=user_brief,
                 niche=niche,
                 style_tags=style_tags or [],
                 theme=theme,
+                used_ids=list(used_ids),
             )
-            if meta and meta.scene_id not in used_ids:
+            if meta:
                 scene_ids.append(meta.scene_id)
                 used_ids.add(meta.scene_id)
                 continue
-            # If best is already used (anti-clone), try top-2
+            # If best retrieval returned None, try top-3 with semantic ranking
             from workers.component_retriever import retrieve_templates
             results = retrieve_templates(
-                section_type, niche=niche, style_tags=style_tags or [], theme=theme, top_n=3
+                section_type,
+                query=user_brief,
+                niche=niche,
+                style_tags=style_tags or [],
+                theme=theme,
+                used_ids=list(used_ids),
+                top_n=3,
             )
             found = False
             for r_meta, r_score in results:
@@ -863,7 +874,7 @@ async def plan_page(
     _user_theme = detect_user_theme_preference(user_brief)
     _early_theme = force_theme or _user_theme or NICHE_TO_THEME.get(niche, "light_trust_v1")
     try:
-        scene_ids = _retrieve_scene_ids_dynamic(niche, theme=_early_theme)
+        scene_ids = _retrieve_scene_ids_dynamic(niche, theme=_early_theme, user_brief=user_brief)
         logger.info(f"Using DYNAMIC retrieval: {len(scene_ids)} scenes for {niche}")
     except Exception as _ret_err:
         logger.warning(f"Dynamic retrieval failed: {_ret_err}, using static fallback")

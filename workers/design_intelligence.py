@@ -236,7 +236,7 @@ PREMIUM_SECTIONS = {
         "compatible_families": ["clean_tech", "dark_luxury", "bold_energy"],
     },
 
-    "stats_bar": {
+    "stats_counters": {
         "name": "Stats Bar",
         "type": "stats",
         "description": "Horizontal stats strip with large numbers and labels",

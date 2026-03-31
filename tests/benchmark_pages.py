@@ -38,7 +38,7 @@ FITNESS_PLAN = PagePlan(
             order=0,
         ),
         SceneSpec(
-            scene_id='proof.stats_bar',
+            scene_id='proof.stats_counters',
             modifiers={'theme': 'light'},
             content={
                 'stats': [
@@ -51,7 +51,7 @@ FITNESS_PLAN = PagePlan(
             order=1,
         ),
         SceneSpec(
-            scene_id='features.bento_premium',
+            scene_id='features.bento_grid',
             modifiers={'theme': 'light'},
             content={
                 'section_title': 'Our Programs',
@@ -140,7 +140,7 @@ LEGAL_PLAN = PagePlan(
             order=1,
         ),
         SceneSpec(
-            scene_id='features.process_timeline',
+            scene_id='features.timeline_process',
             modifiers={'theme': 'light'},
             content={
                 'section_title': 'Our Legal Process',
@@ -302,7 +302,7 @@ SAAS_PLAN = PagePlan(
             order=0,
         ),
         SceneSpec(
-            scene_id='proof.stats_bar',
+            scene_id='proof.stats_counters',
             modifiers={'theme': 'light'},
             content={
                 'stats': [
@@ -315,7 +315,7 @@ SAAS_PLAN = PagePlan(
             order=1,
         ),
         SceneSpec(
-            scene_id='features.bento_premium',
+            scene_id='features.bento_grid',
             modifiers={'theme': 'light'},
             content={
                 'section_title': 'Platform Features',

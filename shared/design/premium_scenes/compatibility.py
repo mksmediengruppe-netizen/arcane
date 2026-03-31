@@ -158,8 +158,8 @@ COMPATIBILITY_MATRIX: dict[str, CompatibilityProfile] = {
     ),
 
     # ── Features: Bento Premium ───────────────────────────────
-    "features.bento_premium.v1": CompatibilityProfile(
-        scene_id="features.bento_premium.v1",
+    "features.bento_grid.v1": CompatibilityProfile(
+        scene_id="features.bento_grid.v1",
         allowed={
             "theme_pack": {"light_trust_v1", "warm_editorial_v1", "neutral_minimal_v1", "dark_premium_v1", "warm_gold_v1", "dark_elegant_v1"},
             "heading_mode": {"sans_executive", "serif_classic", "display_bold"},
@@ -193,8 +193,8 @@ COMPATIBILITY_MATRIX: dict[str, CompatibilityProfile] = {
     ),
 
     # ── Features: Process Timeline ────────────────────────────
-    "features.process_timeline.v1": CompatibilityProfile(
-        scene_id="features.process_timeline.v1",
+    "features.timeline_process.v1": CompatibilityProfile(
+        scene_id="features.timeline_process.v1",
         allowed={
             "theme_pack": {"light_trust_v1", "neutral_minimal_v1", "dark_premium_v1", "warm_gold_v1", "dark_elegant_v1"},
             "heading_mode": {"sans_executive", "serif_classic"},
@@ -208,8 +208,8 @@ COMPATIBILITY_MATRIX: dict[str, CompatibilityProfile] = {
     ),
 
     # ── Proof: Stats Bar ──────────────────────────────────────
-    "proof.stats_bar.v1": CompatibilityProfile(
-        scene_id="proof.stats_bar.v1",
+    "proof.stats_counters.v1": CompatibilityProfile(
+        scene_id="proof.stats_counters.v1",
         allowed={
             "theme_pack": {"light_trust_v1", "neutral_minimal_v1", "dark_premium_v1", "dark_tech_v1", "warm_gold_v1", "dark_elegant_v1"},
             "heading_mode": {"sans_executive", "display_bold"},
@@ -413,7 +413,7 @@ def recommend_safe_defaults(
             "motion_profile": "motion_minimal",
             "container_mode": "container_wide",
         },
-        "features.bento_premium.v1": {
+        "features.bento_grid.v1": {
             "theme_pack": "warm_editorial_v1" if is_warm else "light_trust_v1",
             "heading_mode": "sans_executive",
             "body_mode": "body_clean",
@@ -436,7 +436,7 @@ def recommend_safe_defaults(
             "motion_profile": "motion_minimal",
             "container_mode": "container_standard",
         },
-        "features.process_timeline.v1": {
+        "features.timeline_process.v1": {
             "theme_pack": "light_trust_v1",
             "heading_mode": "sans_executive",
             "body_mode": "body_clean",
@@ -477,7 +477,7 @@ def recommend_safe_defaults(
             "motion_profile": "motion_minimal",
             "container_mode": "container_standard",
         },
-        "proof.stats_bar.v1": {
+        "proof.stats_counters.v1": {
             "theme_pack": "light_trust_v1",
             "heading_mode": "display_bold",
             "body_mode": "body_compact",
