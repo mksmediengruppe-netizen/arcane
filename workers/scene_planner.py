@@ -45,6 +45,7 @@ class PagePlan:
     global_theme: str
     scenes: list[SceneSpec] = field(default_factory=list)
     meta: dict[str, Any] = field(default_factory=dict)
+    blueprint: str = ""  # Name of the master blueprint to use (if any)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -53,6 +54,7 @@ class PagePlan:
             "global_theme": self.global_theme,
             "scenes": [s.to_dict() for s in self.scenes],
             "meta": self.meta,
+            "blueprint": self.blueprint,
         }
 
 
@@ -92,6 +94,27 @@ NICHE_TO_THEME: dict[str, str] = {
     "luxury_service": "dark_elegant_v1", # CHANGED: dark elegant for luxury
     "default": "light_trust_v1",
 }
+
+# ─────────────────────────────────────────────────────────────────
+#  NICHE → BLUEPRINT MAPPING (for blueprint-based assembly)
+#  Maps detected niche to the best matching master blueprint.
+#  These blueprints are 444-698 line HTML templates with {{PLACEHOLDER}} vars.
+# ─────────────────────────────────────────────────────────────────
+NICHE_TO_BLUEPRINT: dict[str, str] = {
+    "restaurant": "warm_editorial",
+    "fitness": "bold_energy",
+    "beauty": "dark_luxury",
+    "real_estate": "clean_tech",
+    "legal": "clean_tech",
+    "medical": "soft_wellness",
+    "saas": "clean_tech",
+    "finance": "clean_tech",
+    "education": "japandi_minimal",
+    "hospitality": "boutique_hospitality",
+    "luxury_service": "cinematic_prestige",
+    "default": "warm_editorial",
+}
+
 
 # ─────────────────────────────────────────────────────────────────
 #  ALTERNATING THEME PAIRS — for WOW contrast between sections
@@ -799,15 +822,21 @@ async def plan_page(
     logger.info(f"Page plan: niche={niche}, global_theme={global_theme}, "
                 f"alternating={primary_theme}/{contrast_theme}, scenes={len(scenes)}")
 
+    # Select blueprint for this niche
+    selected_blueprint = NICHE_TO_BLUEPRINT.get(niche, NICHE_TO_BLUEPRINT["default"])
+    logger.info(f"Selected blueprint: {selected_blueprint} for niche={niche}")
+
     return PagePlan(
         niche=niche,
         niche_tags=niche_tags,
         global_theme=global_theme,
         scenes=scenes,
+        blueprint=selected_blueprint,
         meta={
-            "user_brief": user_brief[:200],
+            "user_brief": user_brief[:3000],
             "scene_count": len(scenes),
             "pipeline": "scene_driven_v2_alternating",
+            "blueprint": NICHE_TO_BLUEPRINT.get(niche, NICHE_TO_BLUEPRINT["default"]),
             "user_theme_override": user_theme,
             "alternating_themes": [primary_theme, contrast_theme],
         },

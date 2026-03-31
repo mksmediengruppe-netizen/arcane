@@ -904,7 +904,7 @@ class ToolExecutor:
             resolved_type = alias_map[template_type]
             
         # Default to clean_tech if unknown
-        valid_blueprints = ["dark_luxury", "warm_editorial", "clean_tech", "bold_energy", "soft_wellness", "japandi_minimal", "neobrutalist"]
+        valid_blueprints = ["dark_luxury", "warm_editorial", "clean_tech", "bold_energy", "soft_wellness", "japandi_minimal", "neobrutalist", "boutique_hospitality", "cinematic_prestige", "editorial_couture"]
         if resolved_type not in valid_blueprints:
             resolved_type = "clean_tech"
 

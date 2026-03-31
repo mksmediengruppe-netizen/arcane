@@ -230,11 +230,18 @@ _connectors = [
 class LoginRequest(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
+    login_id: Optional[str] = None  # Frontend sends this field
     password: str
 
-    @property
-    def login_id(self) -> str:
-        return self.username or self.email or ""
+    def get_resolved_login_id(self) -> str:
+        """Resolve the effective login identifier."""
+        lid = self.login_id or self.username or self.email or ""
+        if lid and not self.email and not self.username:
+            if "@" in lid:
+                self.email = lid
+            else:
+                self.username = lid
+        return lid
 
 
 @router.post("/api/auth/login")
@@ -252,7 +259,7 @@ async def login(req: LoginRequest, response: Response, request: Request):
         factory = get_session_factory(config.db.url)
         async with factory() as session:
             result = await session.execute(
-                select(User).where((User.username == req.login_id) | (User.email == req.login_id))
+                select(User).where((User.username == req.get_resolved_login_id()) | (User.email == req.get_resolved_login_id()))
             )
             db_user = result.scalar_one_or_none()
             if db_user is None or not verify_password(req.password, db_user.password_hash):

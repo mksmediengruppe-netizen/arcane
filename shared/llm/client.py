@@ -415,7 +415,7 @@ class UnifiedLLMClient:
         cost = self._calculate_cost(model_id, input_tokens, output_tokens, cached_tokens)
 
         response = LLMResponse(
-            content=message.get("content"),
+            content=message.get("content") or message.get("reasoning"),
             tool_calls=tool_calls,
             model_id=model_id,
             provider=provider,

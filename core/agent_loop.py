@@ -387,6 +387,8 @@ class AgentLoop:
                 user_brief=user_message,
                 llm_client=self._client,
             )
+            # Pass LLM client to page_plan for blueprint assembly
+            page_plan.meta["_llm_client"] = self._client
             await self._emit_event("scene_plan_created", {
                 "design_family": "scene_driven_v1",
                 "concept_name": f"{page_plan.niche} — {page_plan.global_theme}",
@@ -769,7 +771,7 @@ class AgentLoop:
                 logger.info("Design pipeline skipped — not a web_design task")
 
         _design_judge_passes = 0  # Track how many times we've run the judge
-        _MAX_JUDGE_PASSES = 3     # Maximum judge evaluation cycles
+        _MAX_JUDGE_PASSES = 2     # Maximum judge evaluation cycles
 
         try:
             while self._status == LoopStatus.RUNNING:
@@ -1169,6 +1171,7 @@ class AgentLoop:
                     user_id=self._user_id,
                     project_id=self._project_id,
                     worker="agent_loop",
+                    max_tokens=16384,
                 ),
                 timeout=ITERATION_TIMEOUT,
             )
@@ -1550,6 +1553,7 @@ class AgentLoop:
             provider=response.provider,
             tier=response.tier,
             worker="agent_loop",
+                    max_tokens=16384,
             role=role,
             input_tokens=response.input_tokens,
             output_tokens=response.output_tokens,

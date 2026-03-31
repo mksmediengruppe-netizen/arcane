@@ -43,13 +43,18 @@ class LoginRequest(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     password: str
+    login_id: Optional[str] = None  # Frontend sends this
 
-    @property
-    def login_id(self) -> str:
-        return self.username or self.email or ""
-
-
-
+    def get_login_id(self) -> str:
+        """Resolve the effective login identifier."""
+        lid = self.login_id or self.username or self.email or ''
+        # Auto-populate email/username from login_id
+        if lid and not self.email and not self.username:
+            if '@' in lid:
+                self.email = lid
+            else:
+                self.username = lid
+        return lid
 class RegisterRequest(BaseModel):
     username: str
     password: str
@@ -146,10 +151,10 @@ async def login(req: LoginRequest):
         factory = get_session_factory(config.db.url)
         async with factory() as session:
             result = await session.execute(
-                select(User).where((User.username == req.login_id) | (User.email == req.login_id))
+                select(User).where((User.username == req.get_login_id()) | (User.email == req.get_login_id()))
             )
             user = result.scalar_one_or_none()
-            logger.debug(f"Login attempt for: {req.login_id}")
+            logger.debug(f"Login attempt for: {req.get_login_id()}")
 
             if user is None or not verify_password(req.password, user.password_hash):
                 raise HTTPException(status_code=401, detail="Invalid credentials")

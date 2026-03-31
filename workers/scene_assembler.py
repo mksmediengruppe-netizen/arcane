@@ -17,6 +17,11 @@ import logging
 import re
 from typing import Any, Optional
 
+try:
+    import httpx
+except ImportError:
+    httpx = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 
@@ -296,7 +301,10 @@ async def generate_ai_image(
         style_suffix = style_prompts.get(style, style_prompts["cinematic"])
         full_prompt = f"{query}. {style_suffix}. No text, no watermarks, no logos."
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        if httpx is None:
+            logger.warning("AI image gen: httpx not available, falling back to Pexels")
+            return await fetch_pexels_image(query)
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
@@ -313,7 +321,7 @@ async def generate_ai_image(
                             ]
                         }
                     ],
-                    "max_tokens": 1024,
+                    "max_tokens": 4096,
                 },
             )
             
@@ -327,7 +335,38 @@ async def generate_ai_image(
             if not choices:
                 return await fetch_pexels_image(query)
             
-            content = choices[0].get("message", {}).get("content", "")
+            message = choices[0].get("message", {})
+            
+            # Handle message.images[] format (OpenRouter Nano Banana / Gemini)
+            images_list = message.get("images", [])
+            if images_list:
+                for img_entry in images_list:
+                    if isinstance(img_entry, dict):
+                        url = ""
+                        if img_entry.get("type") == "image_url":
+                            url = img_entry.get("image_url", {}).get("url", "")
+                        elif img_entry.get("url"):
+                            url = img_entry["url"]
+                        if url.startswith("data:image"):
+                            header, b64 = url.split(",", 1)
+                            ext = "png" if "png" in header else "jpg"
+                            filename = f"{uuid.uuid4().hex[:12]}.{ext}"
+                            filepath = os.path.join(project_dir, filename)
+                            with open(filepath, "wb") as f:
+                                f.write(base64.b64decode(b64))
+                            web_dir = "/var/www/demo/images"
+                            os.makedirs(web_dir, exist_ok=True)
+                            import shutil
+                            shutil.copy2(filepath, os.path.join(web_dir, filename))
+                            public_url = f"https://arcaneai.ru/demo/images/{filename}"
+                            _AI_IMAGE_CACHE[cache_key] = public_url
+                            logger.info(f"AI image generated (images[]): {filename} for query: {query[:50]}")
+                            return public_url
+                        elif url.startswith("http"):
+                            _AI_IMAGE_CACHE[cache_key] = url
+                            return url
+            
+            content = message.get("content", "")
             
             # Handle multipart content (image + text)
             if isinstance(content, list):
@@ -362,7 +401,7 @@ async def generate_ai_image(
             return await fetch_pexels_image(query)
             
     except Exception as e:
-        logger.warning(f"AI image gen failed for {query!r}: {e}")
+        import traceback as _tb; logger.warning(f"AI image gen failed for {query!r}: {e}\n{_tb.format_exc()}")
         return await fetch_pexels_image(query)
 
 
@@ -1417,6 +1456,482 @@ PAGE_WRAPPER_END = """
 </html>"""
 
 
+
+# ─────────────────────────────────────────────────────────────────
+#  BLUEPRINT-BASED ASSEMBLY (Day 1.5)
+#  Instead of assembling from 19 small scene templates,
+#  load a master blueprint (444-698 lines) and fill {{PLACEHOLDERS}} via LLM.
+# ─────────────────────────────────────────────────────────────────
+
+BLUEPRINT_FILL_PROMPT = """You are a professional copywriter. Given a client brief and a list of placeholder variables, generate the content for each placeholder.
+
+CLIENT BRIEF:
+{user_brief}
+
+NICHE: {niche}
+LANGUAGE: {lang}
+
+PLACEHOLDERS TO FILL (return JSON object with these exact keys):
+{placeholder_list}
+
+RULES:
+1. All text MUST be in {lang} language (Russian if "ru")
+2. {{BRAND_NAME}} — extract from brief or invent a fitting name
+3. {{HERO_TITLE}} — compelling headline, max 8 words
+3a. {{HERO_TITLE_LINE1}} — first line of hero title (2-4 words)
+3b. {{HERO_TITLE_LINE2}} — second line of hero title (2-4 words, accent/highlight)
+3c. {{HERO_TITLE_BEFORE}}, {{HERO_TITLE_HIGHLIGHT}}, {{HERO_TITLE_AFTER}} — three parts of hero title if template uses them
+4. {{HERO_DESCRIPTION}} — 1-2 sentences, persuasive
+5. {{PHONE}} — use from brief or "+7 (999) 123-45-67"
+6. {{ADDRESS}} — use from brief or invent realistic address
+7. {{HOURS}} — use from brief or "Пн-Пт: 9:00-21:00"
+8. For {{SERVICE_CARDS}} — return HTML: 3-4 <div> cards with service name, description, price
+9. For {{TESTIMONIAL_CARDS}} — return HTML: 2-3 <div> cards with name, text, rating
+10. For {{GALLERY_ITEMS}} — return HTML: 4-6 <div> items with image placeholders
+11. For {{MARQUEE_ITEMS}} — return HTML: 5-8 <span> items for scrolling marquee
+12. For image URLs ({{HERO_IMAGE_URL}}, {{ABOUT_IMAGE_URL}}) — return "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750" (will be replaced with real images later)
+13. For {{LANG}} — return "{lang_code}"
+14. Keep all content professional, specific to the niche, and persuasive
+15. DO NOT use markdown. Return pure text or HTML as appropriate for each field.
+
+Return ONLY a valid JSON object. No markdown, no code blocks, no explanation."""
+
+async def _fill_blueprint_placeholders(
+    blueprint_html: str,
+    user_brief: str,
+    niche: str,
+    llm_client,
+    lang: str = "ru",
+) -> str:
+    """
+    Fill {{PLACEHOLDER}} variables in a blueprint using LLM.
+    Returns the filled HTML string.
+    """
+    import json as _json
+    import os
+    
+    # Extract all unique placeholders from the blueprint
+    # Handle both {{KEY}} and {{KEY|default}} syntax
+    all_matches = re.findall(r'\{\{([A-Z_0-9]+)(?:\|[^}]*)?\}\}', blueprint_html)
+    placeholders = sorted(set(all_matches))
+    if not placeholders:
+        logger.warning("No placeholders found in blueprint")
+        return blueprint_html
+    
+    logger.info(f"Blueprint has {len(placeholders)} unique placeholders: {placeholders}")
+    
+    placeholder_list = "\n".join(f"- {{{{{p}}}}}: <description>" for p in placeholders)
+    lang_code = "ru" if lang == "ru" else "en"
+    
+    prompt = BLUEPRINT_FILL_PROMPT.format(
+        user_brief=user_brief[:2000],
+        niche=niche,
+        lang="Russian" if lang == "ru" else "English",
+        lang_code=lang_code,
+        placeholder_list=placeholder_list,
+    )
+    
+    try:
+        # Use LLM to generate content for all placeholders
+        from shared.models.schemas import LLMRequest
+        from shared.llm.client import LLMResponse
+        request = LLMRequest(
+            model_id="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": "You are a JSON-only content generator. Return ONLY valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+        response = await llm_client.complete(request, role="blueprint_fill", worker="scene_assembler")
+        
+        raw_content = response.content if isinstance(response, LLMResponse) else str(response)
+        
+        # Clean up response — remove markdown code blocks if present
+        raw_content = raw_content.strip()
+        if raw_content.startswith("```"):
+            raw_content = re.sub(r'^```(?:json)?\n?', '', raw_content)
+            raw_content = re.sub(r'\n?```$', '', raw_content)
+        
+        content_map = _json.loads(raw_content)
+        logger.info(f"LLM returned {len(content_map)} placeholder values")
+        
+    except Exception as e:
+        logger.error(f"Blueprint LLM fill failed: {e}, using fallback content")
+        content_map = _generate_blueprint_fallback(niche, user_brief, lang)
+    
+    # Post-process: derive missing multi-part hero title keys from HERO_TITLE
+    if "HERO_TITLE" in content_map:
+        hero_title = content_map["HERO_TITLE"]
+        words = hero_title.split()
+        mid = len(words) // 2
+        if "HERO_TITLE_LINE1" not in content_map:
+            content_map["HERO_TITLE_LINE1"] = " ".join(words[:mid]) if mid > 0 else hero_title
+        if "HERO_TITLE_LINE2" not in content_map:
+            content_map["HERO_TITLE_LINE2"] = " ".join(words[mid:]) if mid > 0 else ""
+        if "HERO_TITLE_BEFORE" not in content_map:
+            content_map["HERO_TITLE_BEFORE"] = " ".join(words[:1]) if len(words) > 2 else ""
+        if "HERO_TITLE_HIGHLIGHT" not in content_map:
+            content_map["HERO_TITLE_HIGHLIGHT"] = " ".join(words[1:3]) if len(words) > 2 else hero_title
+        if "HERO_TITLE_AFTER" not in content_map:
+            content_map["HERO_TITLE_AFTER"] = " ".join(words[3:]) if len(words) > 3 else ""
+
+    # Replace placeholders in HTML (handle both {{KEY}} and {{KEY|default}} syntax)
+    filled_html = blueprint_html
+    for placeholder in placeholders:
+        key = placeholder  # e.g. "BRAND_NAME"
+        value = content_map.get(key, "")
+        if not value:
+            # Try with curly braces
+            value = content_map.get(f"{{{{{key}}}}}", "")
+        
+        # Replace {{KEY|default}} first (with pipe defaults)
+        # Use regex to match {{KEY|anything}} and replace with value or default
+        import re as _re_inner
+        pattern = r'\{\{' + _re_inner.escape(key) + r'\|([^}]*)\}\}'
+        if value:
+            filled_html = _re_inner.sub(pattern, lambda m: str(value), filled_html)
+        else:
+            # Use the default value from the pipe syntax
+            filled_html = _re_inner.sub(pattern, r'\1', filled_html)
+        
+        # Then replace {{KEY}} (without pipe defaults)
+        if value:
+            filled_html = filled_html.replace(f"{{{{{key}}}}}", str(value))
+        else:
+            filled_html = filled_html.replace(f"{{{{{key}}}}}", f"[{key}]")
+    
+    # Fetch real images from Pexels for image placeholders
+    if fetch_images_enabled:
+        filled_html = await _replace_pexels_placeholders(filled_html, niche, user_brief)
+    
+    return filled_html
+
+
+# Global flag for image fetching in blueprint mode
+fetch_images_enabled = True
+
+
+async def _replace_pexels_placeholders(html: str, niche: str, user_brief: str) -> str:
+    """Replace Pexels placeholder URLs with AI-generated images (Nano Banana / Gemini Flash).
+    
+    Priority: AI generation (OpenRouter) → Unsplash curated fallback.
+    """
+    import os
+    import re as _re
+
+    # Full placeholder URL to replace
+    full_placeholder = "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
+    if full_placeholder not in html:
+        return html
+
+    count_total = html.count(full_placeholder)
+    logger.info(f"Blueprint image replacement: {count_total} placeholders found for niche '{niche}'")
+
+    # Generate niche-specific image prompts
+    niche_prompts = {
+        "restaurant": [
+            "Elegant restaurant interior with warm ambient lighting, wooden tables, wine glasses, and soft candlelight. Professional food photography style.",
+            "Beautiful gourmet dish on a white plate, artistically plated, restaurant setting with blurred background. Food photography.",
+            "Cozy restaurant terrace with string lights, green plants, and elegant table settings at golden hour.",
+            "Professional chef preparing food in a modern kitchen, dramatic lighting, culinary arts.",
+            "Wine cellar with oak barrels and warm lighting, premium restaurant atmosphere.",
+            "Close-up of fresh ingredients on a cutting board, herbs, vegetables, professional food styling.",
+        ],
+        "fitness": [
+            "Modern gym interior with professional equipment, dramatic lighting, motivational atmosphere. Wide angle shot.",
+            "Athletic person doing workout in a well-lit modern gym, dynamic pose, professional sports photography.",
+            "Yoga class in a bright, minimalist studio with natural light streaming through large windows.",
+            "Group fitness class with energetic participants, modern gym setting, vibrant atmosphere.",
+            "Close-up of dumbbells and fitness equipment with dramatic lighting, gym aesthetic.",
+            "Outdoor fitness training at sunrise, athletic silhouette, motivational sports photography.",
+        ],
+        "beauty": [
+            "Luxury barbershop interior with leather chairs, warm wood paneling, vintage mirrors, and professional lighting.",
+            "Professional barber giving a haircut, close-up, dramatic lighting, barbershop atmosphere.",
+            "Beauty salon interior with modern minimalist design, clean lines, professional lighting.",
+            "Hair styling tools arranged artistically on a marble surface, professional beauty photography.",
+            "Elegant spa treatment room with candles, towels, and natural elements, relaxation atmosphere.",
+            "Close-up of professional hair styling, salon setting, editorial beauty photography.",
+        ],
+        "medical": [
+            "Modern dental clinic interior with state-of-the-art equipment, clean white design, professional medical setting.",
+            "Friendly dentist consulting with a patient in a bright, modern clinic. Professional medical photography.",
+            "Close-up of modern dental equipment in a clean, well-lit treatment room.",
+            "Medical clinic reception area with modern design, comfortable seating, professional atmosphere.",
+            "Team of medical professionals in white coats, confident and friendly, modern clinic background.",
+            "Bright and clean medical examination room with modern equipment, professional healthcare setting.",
+        ],
+        "real_estate": [
+            "Luxury modern apartment interior with panoramic city views, designer furniture, warm lighting.",
+            "Beautiful modern house exterior with landscaped garden, architectural photography at golden hour.",
+            "Spacious living room with floor-to-ceiling windows, contemporary design, natural light.",
+            "Modern kitchen with marble countertops, stainless steel appliances, designer lighting.",
+            "Penthouse terrace with city skyline view at sunset, luxury real estate photography.",
+            "Elegant bedroom with premium bedding, soft lighting, contemporary interior design.",
+        ],
+        "legal": [
+            "Professional law office with dark wood furniture, legal books, and warm lighting. Corporate photography.",
+            "Modern conference room with glass walls, city view, professional business setting.",
+            "Elegant office desk with legal documents, fountain pen, and scales of justice. Professional still life.",
+            "Business professionals in a meeting, modern office, confident corporate atmosphere.",
+        ],
+        "saas": [
+            "Modern tech office with large monitors showing dashboards, clean minimal design, professional workspace.",
+            "Team of developers collaborating around a screen, modern startup office, natural lighting.",
+            "Abstract technology visualization, data streams, futuristic digital interface, dark background.",
+            "Clean laptop on a minimalist desk with a plant, modern workspace, productivity aesthetic.",
+        ],
+        "education": [
+            "Modern university lecture hall with students, bright natural lighting, educational atmosphere.",
+            "Library interior with bookshelves, reading areas, warm ambient lighting, academic setting.",
+            "Students collaborating on a project in a modern classroom with technology, educational photography.",
+            "Graduation ceremony with caps thrown in the air, celebratory moment, outdoor campus.",
+        ],
+        "hospitality": [
+            "Luxury hotel lobby with grand chandelier, marble floors, elegant design, hospitality photography.",
+            "Premium hotel room with ocean view, king bed, luxury amenities, warm lighting.",
+            "Hotel infinity pool overlooking tropical landscape at sunset, luxury resort photography.",
+            "Elegant hotel restaurant with fine dining setup, candlelight, premium hospitality.",
+        ],
+        "finance": [
+            "Modern financial office with city skyline view, professional workspace, corporate photography.",
+            "Business analytics dashboard on a large screen, modern office, data visualization.",
+            "Professional handshake in a corporate setting, business partnership, confident atmosphere.",
+        ],
+    }
+
+    prompts = niche_prompts.get(niche, [
+        f"Professional {niche} business interior, modern design, warm lighting, high-end photography.",
+        f"Team of {niche} professionals at work, modern office, confident and friendly atmosphere.",
+        f"Close-up detail shot related to {niche} industry, professional photography, clean composition.",
+        f"Modern {niche} workspace with premium design, natural lighting, professional atmosphere.",
+    ])
+
+    # Try AI image generation first
+    generated_urls = []
+    try:
+        # Generate images in parallel (up to count_total, max 4)
+        num_to_generate = min(count_total, len(prompts), 4)
+        
+        tasks = []
+        for i in range(num_to_generate):
+            prompt = prompts[i % len(prompts)]
+            tasks.append(generate_ai_image(
+                prompt,
+                style="cinematic",
+                project_dir="/root/workspace/generated_images"
+            ))
+        
+        import asyncio
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        for r in results:
+            if isinstance(r, str) and r.startswith("http"):
+                generated_urls.append(r)
+            elif isinstance(r, Exception):
+                logger.warning(f"AI image generation task failed: {r}")
+        
+        logger.info(f"AI image generation: {len(generated_urls)}/{num_to_generate} images generated successfully")
+    except Exception as e:
+        logger.warning(f"AI image generation batch failed: {e}")
+
+    # Use generated images if we have any
+    if generated_urls:
+        for i, url in enumerate(generated_urls):
+            if full_placeholder not in html:
+                break
+            html = html.replace(full_placeholder, url, 1)
+        # Cycle through generated images for remaining placeholders
+        idx = 0
+        while full_placeholder in html and generated_urls:
+            html = html.replace(full_placeholder, generated_urls[idx % len(generated_urls)], 1)
+            idx += 1
+        count_after = html.count(full_placeholder)
+        logger.info(f"AI image replacement: {count_total - count_after} replaced with AI images, {count_after} remaining")
+        return html
+
+    # Fallback: Unsplash curated images
+    logger.info("Falling back to Unsplash curated images")
+    niche_images = {
+        "restaurant": [
+            "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&h=800&fit=crop",
+        ],
+        "fitness": [
+            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=1200&h=800&fit=crop",
+        ],
+        "beauty": [
+            "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1200&h=800&fit=crop",
+        ],
+        "medical": [
+            "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=1200&h=800&fit=crop",
+        ],
+        "real_estate": [
+            "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=800&fit=crop",
+        ],
+        "legal": [
+            "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1505664194779-8beaceb93744?w=1200&h=800&fit=crop",
+        ],
+        "saas": [
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&h=800&fit=crop",
+        ],
+        "education": [
+            "https://images.unsplash.com/photo-1523050854058-8df90110c476?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&h=800&fit=crop",
+        ],
+        "hospitality": [
+            "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&h=800&fit=crop",
+        ],
+        "finance": [
+            "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&h=800&fit=crop",
+            "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop",
+        ],
+    }
+
+    images = niche_images.get(niche, [
+        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop",
+        "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop",
+        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&h=800&fit=crop",
+    ])
+
+    for i, img_url in enumerate(images):
+        if full_placeholder not in html:
+            break
+        html = html.replace(full_placeholder, img_url, 1)
+
+    idx = 0
+    while full_placeholder in html and images:
+        html = html.replace(full_placeholder, images[idx % len(images)], 1)
+        idx += 1
+
+    count_after = html.count(full_placeholder)
+    logger.info(f"Unsplash fallback: {count_total - count_after} replaced, {count_after} remaining (niche: {niche})")
+
+    return html
+
+def _generate_blueprint_fallback(niche: str, user_brief: str, lang: str) -> dict:
+    """Generate fallback content when LLM fails."""
+    # Extract brand name from brief
+    import re as _re
+    brand = "Brand"
+    # Try to find quoted name in brief
+    quoted = _re.findall(r'["\'«»]([^"\'«»]+)["\'«»]', user_brief)
+    if quoted:
+        brand = quoted[0]
+    
+    return {
+        "BRAND_NAME": brand,
+        "PAGE_TITLE": f"{brand} — Официальный сайт",
+        "META_DESCRIPTION": f"{brand} — качественные услуги для вас",
+        "HERO_TITLE": f"Добро пожаловать в {brand}",
+        "HERO_DESCRIPTION": "Мы предлагаем лучшие решения для вашего бизнеса",
+        "HERO_BADGE": "Лучший выбор",
+        "HERO_IMAGE_URL": "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750",
+        "HERO_IMAGE_ALT": brand,
+        "CTA_PRIMARY": "Связаться",
+        "CTA_SECONDARY": "Узнать больше",
+        "CTA_TITLE": "Готовы начать?",
+        "CTA_DESCRIPTION": "Свяжитесь с нами для бесплатной консультации",
+        "CTA_PHONE_TEXT": "Позвонить",
+        "ABOUT_TITLE": f"О компании {brand}",
+        "ABOUT_TEXT": "Мы — команда профессионалов с многолетним опытом работы.",
+        "ABOUT_LABEL": "О нас",
+        "ABOUT_IMAGE_URL": "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750",
+        "ABOUT_IMAGE_ALT": f"О {brand}",
+        "SERVICES_TITLE": "Наши услуги",
+        "SERVICES_LABEL": "Услуги",
+        "SERVICE_CARDS": '<div class="service-card"><h3>Услуга 1</h3><p>Описание услуги</p></div>',
+        "REVIEWS_TITLE": "Отзывы клиентов",
+        "REVIEWS_LABEL": "Отзывы",
+        "TESTIMONIAL_CARDS": '<div class="testimonial"><p>"Отличный сервис!"</p><span>— Клиент</span></div>',
+        "GALLERY_ITEMS": "",
+        "MARQUEE_ITEMS": f"<span>{brand}</span> <span>•</span> <span>Качество</span> <span>•</span>",
+        "PHONE": "+7 (999) 123-45-67",
+        "ADDRESS": "г. Москва, ул. Примерная, д. 1",
+        "HOURS": "Пн-Пт: 9:00-21:00",
+        "LABEL_PHONE": "Телефон",
+        "LABEL_ADDRESS": "Адрес",
+        "LABEL_HOURS": "Часы работы",
+        "FOOTER_TEXT": f"© 2026 {brand}. Все права защищены.",
+        "NAV_SERVICES": "Услуги",
+        "NAV_ABOUT": "О нас",
+        "NAV_REVIEWS": "Отзывы",
+        "LANG": "ru" if lang == "ru" else "en",
+    }
+
+
+async def assemble_from_blueprint(
+    page_plan: "PagePlan",
+    *,
+    fetch_images: bool = True,
+    lang: str = "ru",
+) -> str:
+    """
+    Assemble a complete HTML page from a master blueprint.
+    Instead of combining 19 small templates, loads one 500+ line blueprint
+    and fills {{PLACEHOLDERS}} via LLM.
+    
+    Returns the full HTML string, or empty string if blueprint not found.
+    """
+    import os
+    global fetch_images_enabled
+    fetch_images_enabled = fetch_images
+    
+    blueprint_name = page_plan.blueprint
+    if not blueprint_name:
+        return ""
+    
+    blueprint_path = f"/root/arcane/templates/blueprints/{blueprint_name}.html"
+    if not os.path.exists(blueprint_path):
+        logger.error(f"Blueprint not found: {blueprint_path}")
+        return ""
+    
+    with open(blueprint_path, "r", encoding="utf-8") as f:
+        blueprint_html = f.read()
+    
+    logger.info(f"Loaded blueprint '{blueprint_name}' ({len(blueprint_html)} chars, {blueprint_html.count(chr(10))} lines)")
+    
+    # Get LLM client from the page_plan meta
+    llm_client = page_plan.meta.get("_llm_client")
+    if not llm_client:
+        logger.error("No LLM client in page_plan.meta, cannot fill placeholders")
+        # Use fallback
+        content_map = _generate_blueprint_fallback(page_plan.niche, page_plan.meta.get("user_brief", ""), lang)
+        for key, value in content_map.items():
+            blueprint_html = blueprint_html.replace(f"{{{{{key}}}}}", str(value))
+        return blueprint_html
+    
+    # Fill placeholders via LLM
+    filled_html = await _fill_blueprint_placeholders(
+        blueprint_html,
+        user_brief=page_plan.meta.get("user_brief", ""),
+        niche=page_plan.niche,
+        llm_client=llm_client,
+        lang=lang,
+    )
+    
+    logger.info(f"Blueprint assembly complete: {len(filled_html)} chars")
+    return filled_html
+
+
 async def assemble_page(
     page_plan: "PagePlan",  # type: ignore[name-defined]
     *,
@@ -1426,7 +1941,27 @@ async def assemble_page(
     """
     Assemble a complete HTML page from a PagePlan.
     Returns the full HTML string.
+    
+    If page_plan has a blueprint set, tries blueprint-based assembly first.
+    Falls back to scene-by-scene assembly if blueprint fails.
     """
+    # ── TRY BLUEPRINT-BASED ASSEMBLY FIRST ──
+    if page_plan.blueprint:
+        logger.info(f"Attempting blueprint-based assembly: {page_plan.blueprint}")
+        try:
+            blueprint_html = await assemble_from_blueprint(
+                page_plan,
+                fetch_images=fetch_images,
+                lang=lang,
+            )
+            if blueprint_html and len(blueprint_html) > 1000:
+                logger.info(f"Blueprint assembly SUCCESS: {len(blueprint_html)} chars")
+                return blueprint_html
+            else:
+                logger.warning(f"Blueprint assembly returned too short HTML ({len(blueprint_html)} chars), falling back to scene assembly")
+        except Exception as e:
+            logger.error(f"Blueprint assembly failed: {e}, falling back to scene assembly")
+    
     from workers.component_retriever import get_template
     from shared.design.premium_scenes.modifier_enums import resolve_modifier_bundle
 

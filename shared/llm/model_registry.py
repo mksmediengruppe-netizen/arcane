@@ -21,7 +21,7 @@ MODELS: dict[str, ModelSpec] = {
 
     "gpt-4.1-nano": ModelSpec(
         id="gpt-4.1-nano",
-        provider=Provider.OPENAI,
+        provider=Provider.OPENROUTER,
         display_name="GPT-4.1 Nano",
         input_price_per_mtok=0.10,
         output_price_per_mtok=0.40,
@@ -32,7 +32,7 @@ MODELS: dict[str, ModelSpec] = {
     ),
     "gpt-4.1-mini": ModelSpec(
         id="gpt-4.1-mini",
-        provider=Provider.OPENAI,
+        provider=Provider.OPENROUTER,
         display_name="GPT-4.1 Mini",
         input_price_per_mtok=0.40,
         output_price_per_mtok=1.60,
@@ -43,7 +43,7 @@ MODELS: dict[str, ModelSpec] = {
     ),
     "gpt-4.1": ModelSpec(
         id="gpt-4.1",
-        provider=Provider.OPENAI,
+        provider=Provider.OPENROUTER,
         display_name="GPT-4.1",
         input_price_per_mtok=2.00,
         output_price_per_mtok=8.00,
