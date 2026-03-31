@@ -382,7 +382,7 @@ async def generate_ai_image(
                             with open(filepath, "wb") as f:
                                 f.write(base64.b64decode(b64))
                             # Serve via public URL
-                            public_url = f"https://arcaneai.ru/workspace/images/{filename}"  # P4-FIX BUG-005
+                            # Images served from /demo/images/ (unified URL contract)
                             # Copy to web-accessible directory
                             web_dir = "/var/www/demo/images"
                             os.makedirs(web_dir, exist_ok=True)

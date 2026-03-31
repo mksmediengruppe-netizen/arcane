@@ -13,6 +13,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Sequence
 
+from workers.component_retriever import retrieve_best as _retrieve_best
+
 logger = logging.getLogger(__name__)
 
 
@@ -146,6 +148,26 @@ FORCE_LIGHT_SCENES: set[str] = {
 }
 
 # Default scene sequences per niche
+
+# ─────────────────────────────────────────────────────────────────
+#  NICHE SECTION SEQUENCE — defines which section_types to include per niche
+#  Used by dynamic retriever to pick best template for each section_type
+# ─────────────────────────────────────────────────────────────────
+NICHE_SECTION_SEQUENCE: dict[str, list[str]] = {
+    "restaurant": ["hero", "proof", "about", "features", "parallax", "gallery", "testimonials", "pricing", "cta", "footer"],
+    "fitness": ["hero", "proof", "features", "parallax", "about", "trust", "gallery", "testimonials", "pricing", "cta", "footer"],
+    "beauty": ["hero", "proof", "about", "features", "parallax", "gallery", "testimonials", "pricing", "cta", "footer"],
+    "real_estate": ["hero", "trust", "about", "features", "parallax", "gallery", "trust", "testimonials", "cta", "footer"],
+    "legal": ["hero", "trust", "about", "features", "trust", "testimonials", "cta", "footer"],
+    "medical": ["hero", "trust", "about", "features", "trust", "testimonials", "cta", "footer"],
+    "saas": ["hero", "proof", "features", "parallax", "about", "trust", "testimonials", "pricing", "cta", "footer"],
+    "finance": ["hero", "trust", "about", "features", "trust", "testimonials", "cta", "footer"],
+    "education": ["hero", "proof", "about", "features", "parallax", "testimonials", "pricing", "cta", "footer"],
+    "hospitality": ["hero", "proof", "about", "features", "parallax", "gallery", "testimonials", "pricing", "cta", "footer"],
+    "luxury_service": ["hero", "proof", "about", "features", "parallax", "gallery", "testimonials", "pricing", "cta", "footer"],
+    "default": ["hero", "proof", "about", "features", "parallax", "testimonials", "cta", "footer"],
+}
+
 NICHE_SCENE_TEMPLATES: dict[str, list[str]] = {
     "restaurant": [
         "hero.cinematic_fullbleed.v1",
@@ -742,6 +764,74 @@ def _generate_fallback_content(
 #  MAIN PLANNER
 # ─────────────────────────────────────────────────────────────────
 
+
+def _retrieve_scene_ids_dynamic(
+    niche: str,
+    theme: str,
+    style_tags: list[str] | None = None,
+) -> list[str]:
+    """
+    Dynamically retrieve best scene_ids for a niche using component_retriever.
+    Falls back to NICHE_SCENE_TEMPLATES if retriever fails.
+    
+    Anti-clone: tracks used scene_ids to avoid duplicates within same section_type.
+    """
+    section_types = NICHE_SECTION_SEQUENCE.get(niche, NICHE_SECTION_SEQUENCE["default"])
+    scene_ids: list[str] = []
+    used_ids: set[str] = set()  # anti-clone within same page
+    
+    for section_type in section_types:
+        try:
+            meta = _retrieve_best(
+                section_type,
+                niche=niche,
+                style_tags=style_tags or [],
+                theme=theme,
+            )
+            if meta and meta.scene_id not in used_ids:
+                scene_ids.append(meta.scene_id)
+                used_ids.add(meta.scene_id)
+                continue
+            # If best is already used (anti-clone), try top-2
+            from workers.component_retriever import retrieve_templates
+            results = retrieve_templates(
+                section_type, niche=niche, style_tags=style_tags or [], theme=theme, top_n=3
+            )
+            found = False
+            for r_meta, r_score in results:
+                if r_meta.scene_id not in used_ids:
+                    scene_ids.append(r_meta.scene_id)
+                    used_ids.add(r_meta.scene_id)
+                    found = True
+                    break
+            if not found:
+                # Fallback: use first available for this section_type
+                fallback_ids = NICHE_SCENE_TEMPLATES.get(niche, NICHE_SCENE_TEMPLATES["default"])
+                for fid in fallback_ids:
+                    if fid.startswith(f"{section_type}.") and fid not in used_ids:
+                        scene_ids.append(fid)
+                        used_ids.add(fid)
+                        found = True
+                        break
+                if not found:
+                    logger.warning(f"No template found for section_type={section_type}, niche={niche}")
+        except Exception as e:
+            logger.warning(f"Retriever failed for {section_type}: {e}, using static fallback")
+            fallback_ids = NICHE_SCENE_TEMPLATES.get(niche, NICHE_SCENE_TEMPLATES["default"])
+            for fid in fallback_ids:
+                if fid.startswith(f"{section_type}.") and fid not in used_ids:
+                    scene_ids.append(fid)
+                    used_ids.add(fid)
+                    break
+    
+    if not scene_ids:
+        logger.warning(f"Dynamic retrieval returned empty for {niche}, using full static fallback")
+        return NICHE_SCENE_TEMPLATES.get(niche, NICHE_SCENE_TEMPLATES["default"])
+    
+    logger.info(f"Dynamic retrieval for {niche}: {len(scene_ids)} scenes (vs {len(section_types)} requested)")
+    return scene_ids
+
+
 async def plan_page(
     user_brief: str,
     llm_client: Any,
@@ -768,7 +858,16 @@ async def plan_page(
         niche_tags = [force_niche]
 
     # Step 2: Select scene sequence
-    scene_ids = NICHE_SCENE_TEMPLATES.get(niche, NICHE_SCENE_TEMPLATES["default"])
+    # DoD-2: Dynamic retrieval via component_retriever (with static fallback)
+    # Determine theme early for retriever
+    _user_theme = detect_user_theme_preference(user_brief)
+    _early_theme = force_theme or _user_theme or NICHE_TO_THEME.get(niche, "light_trust_v1")
+    try:
+        scene_ids = _retrieve_scene_ids_dynamic(niche, theme=_early_theme)
+        logger.info(f"Using DYNAMIC retrieval: {len(scene_ids)} scenes for {niche}")
+    except Exception as _ret_err:
+        logger.warning(f"Dynamic retrieval failed: {_ret_err}, using static fallback")
+        scene_ids = NICHE_SCENE_TEMPLATES.get(niche, NICHE_SCENE_TEMPLATES["default"])
 
     # Step 3: Determine global theme
     # Priority: force_theme > user_preference > niche_default
