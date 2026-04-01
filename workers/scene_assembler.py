@@ -597,6 +597,65 @@ def _safe_str(value: Any, default: str = "") -> str:
     return str(value).replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
+
+
+# ─────────────────────────────────────────────────────────────────
+#  BATCH AI IMAGE GENERATION — parallel generation for multiple prompts
+# ─────────────────────────────────────────────────────────────────
+
+_USED_IMAGE_URLS: set[str] = set()  # Track used URLs to prevent duplicates within a page
+
+def reset_image_tracking():
+    """Reset image tracking for a new page generation."""
+    _USED_IMAGE_URLS.clear()
+
+async def batch_generate_images(
+    prompts: list[str],
+    *,
+    style: str = "cinematic",
+    size: str = "1792x1024",
+    project_dir: str = "/root/workspace/images",
+) -> list[str]:
+    """Generate multiple AI images in parallel, ensuring uniqueness.
+    
+    Returns list of URLs (same length as prompts). Falls back to Pexels for failures.
+    """
+    import asyncio
+    
+    results = []
+    # Generate all images concurrently
+    tasks = [
+        generate_ai_image(prompt, style=style, size=size, project_dir=project_dir)
+        for prompt in prompts
+    ]
+    raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    seen_urls = set()
+    for i, result in enumerate(raw_results):
+        if isinstance(result, Exception):
+            logger.warning(f"Batch image gen failed for prompt {i}: {result}")
+            result = None
+        
+        url = result or ""
+        
+        # Dedup: if URL already used, try to regenerate with modified prompt
+        if url and url in seen_urls:
+            logger.info(f"Duplicate image detected, regenerating with modified prompt")
+            modified_prompt = f"{prompts[i]} Alternative angle, different composition."
+            url = await generate_ai_image(modified_prompt, style=style, size=size, project_dir=project_dir)
+            if not url or url in seen_urls:
+                # Last resort: fetch from Pexels with different query
+                url = await fetch_pexels_image(prompts[i].split('.')[0][:50])
+        
+        if url:
+            seen_urls.add(url)
+            _USED_IMAGE_URLS.add(url)
+        
+        results.append(url or "")
+    
+    return results
+
+
 def _render_features_html(features: list[dict], surface_class: str, icon_class: str) -> str:
     """Render features list to HTML cards."""
     html_parts = []
@@ -971,33 +1030,27 @@ async def render_scene(
     subs["{{EMAIL}}"] = _safe_str(content.get("email", ""))
     subs["{{ADDRESS}}"] = _safe_str(content.get("address", ""))
 
-    # Hero media — with robust Pexels fallback chain
+    # Hero media — AI-FIRST with Pexels fallback
+    hero_image_prompt = content.get("hero_image_prompt", content.get("hero_media_url", ""))
     hero_media_url = content.get("hero_media_url", "")
-    if fetch_images and (not hero_media_url or not hero_media_url.startswith("http")):
-        query = hero_media_url or f"{niche} professional business"
-        # Try 1: full query
-        # AI image generation with Pexels fallback
-        project_img_dir = f"/root/workspace/images"  # P4-FIX BUG-005: unified path
-        fetched = await fetch_image(query, style="cinematic", project_dir=project_img_dir)
-        if not fetched:
-            short_query = " ".join(query.split()[:2])
-            fetched = await fetch_image(short_query, style="cinematic", project_dir=project_img_dir)
-        if not fetched:
-            niche_queries = {
-                "saas": "futuristic technology dashboard holographic",
-                "restaurant": "luxury restaurant interior warm lighting",
-                "fitness": "dynamic fitness athlete gym action",
-                "beauty": "luxury beauty salon elegant interior",
-                "real_estate": "modern luxury apartment panoramic view",
-                "legal": "prestigious law office mahogany desk",
-                "medical": "modern medical clinic bright clean",
-                "finance": "financial trading floor modern",
-                "education": "modern university campus bright",
-                "hospitality": "luxury hotel lobby chandelier marble",
-            }
-            fallback_query = niche_queries.get(niche, "modern premium business")
-            fetched = await fetch_image(fallback_query, style="cinematic", project_dir=project_img_dir)
-        hero_media_url = fetched or "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
+    project_img_dir = "/root/workspace/images"
+    
+    if fetch_images:
+        if hero_image_prompt and len(hero_image_prompt) > 30 and not hero_image_prompt.startswith("http"):
+            # AI-first: use detailed prompt for AI image generation
+            fetched = await generate_ai_image(hero_image_prompt, style="cinematic", size="1792x1024", project_dir=project_img_dir)
+            if fetched:
+                hero_media_url = fetched
+                logger.info(f"Hero: AI image generated from prompt")
+            else:
+                # Fallback to Pexels with short query
+                short_query = " ".join(hero_image_prompt.split()[:5])
+                fetched = await fetch_pexels_image(short_query)
+                hero_media_url = fetched or "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
+        elif not hero_media_url or not hero_media_url.startswith("http"):
+            query = hero_media_url or f"{niche} professional business"
+            fetched = await fetch_image(query, style="cinematic", project_dir=project_img_dir)
+            hero_media_url = fetched or "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
     elif not hero_media_url:
         hero_media_url = "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
     subs["{{HERO_MEDIA_URL}}"] = hero_media_url
@@ -1005,22 +1058,40 @@ async def render_scene(
     # ── Multi-photo: fetch Pexels images for features, about, parallax sections ──
     if fetch_images:
         niche_query = content.get("niche_query", content.get("headline", "business"))
-        # Feature images (up to 5)
+        # Feature images (up to 5) — AI-FIRST
+        features_arr = content.get("features", [])
         for i in range(1, 6):
             key = f"feature_{i}_image"
             placeholder = f"{{{{FEATURE_{i}_IMAGE}}}}"
             img_url = content.get(key, "")
+            # Try to get image_prompt from features array
+            feat_prompt = ""
+            if i <= len(features_arr) and isinstance(features_arr[i-1], dict):
+                feat_prompt = features_arr[i-1].get("image_prompt", "")
+            if feat_prompt and len(feat_prompt) > 20 and (not img_url or not img_url.startswith("http")):
+                generated = await generate_ai_image(feat_prompt, style="editorial", size="1024x1024", project_dir="/root/workspace/images")
+                if generated:
+                    img_url = generated
+                    logger.info(f"Feature {i}: AI image generated from prompt")
             if not img_url or not img_url.startswith("http"):
-                query = img_url or f"{niche_query} professional"
-                fetched = await fetch_image(query, style="editorial", project_dir=f"/root/workspace/images")  # P4-FIX BUG-005
+                query = img_url or feat_prompt or f"{niche_query} professional"
+                if len(query) > 50:
+                    query = " ".join(query.split()[:5])
+                fetched = await fetch_pexels_image(query)
                 img_url = fetched or "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800"
             subs[placeholder] = img_url
-        # About / parallax background image
-        about_img = content.get("about_image", "")
-        if not about_img or not about_img.startswith("http"):
-            query = about_img or f"{niche_query} team workspace"
-            fetched = await fetch_image(query, style="editorial", project_dir=f"/root/workspace/images")  # P4-FIX BUG-005
-            about_img = fetched or ""
+        # About / parallax background image — AI-FIRST
+        about_image_prompt = content.get("about_image_prompt", content.get("about_image", ""))
+        about_img = ""
+        if about_image_prompt and len(about_image_prompt) > 30 and not about_image_prompt.startswith("http"):
+            about_img = await generate_ai_image(about_image_prompt, style="editorial", size="1792x1024", project_dir="/root/workspace/images")
+            if about_img:
+                logger.info(f"About: AI image generated from prompt")
+        if not about_img:
+            query = about_image_prompt or f"{niche_query} team workspace"
+            if len(query) > 50:
+                query = " ".join(query.split()[:5])
+            about_img = await fetch_pexels_image(query) or ""
         subs["{{ABOUT_IMAGE}}"] = about_img
 
     # ── Extra content tokens from enhanced templates ──
@@ -1120,8 +1191,26 @@ async def render_scene(
     social_links = content.get("social_links", [])
     subs["{{SOCIAL_LINKS_HTML}}"] = _render_footer_links(social_links) if social_links else ""
 
-    # Gallery items
+    # Gallery items — AI-FIRST: generate unique images for each gallery item
     gallery_items = content.get("gallery", content.get("gallery_items", []))
+    if fetch_images and gallery_items:
+        # Generate AI images for gallery items that have image_prompt but no URL
+        for gi, item in enumerate(gallery_items):
+            if isinstance(item, dict):
+                img_prompt = item.get("image_prompt", "")
+                img_url = item.get("url", item.get("image", ""))
+                if img_prompt and len(img_prompt) > 20 and (not img_url or not img_url.startswith("http")):
+                    generated = await generate_ai_image(img_prompt, style="editorial", size="1024x1024", project_dir="/root/workspace/images")
+                    if generated:
+                        item["url"] = generated
+                        item["image"] = generated
+                        logger.info(f"Gallery item {gi}: AI image generated")
+                    else:
+                        short_q = " ".join(img_prompt.split()[:4])
+                        fallback = await fetch_pexels_image(short_q)
+                        if fallback:
+                            item["url"] = fallback
+                            item["image"] = fallback
     subs["{{GALLERY_HTML}}"] = _render_gallery_html(gallery_items, surface_class) if gallery_items else ""
 
     # Pricing items

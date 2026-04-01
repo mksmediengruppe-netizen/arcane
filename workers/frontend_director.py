@@ -59,7 +59,7 @@ RULES:
 2. Use EXACT hex codes, not color names
 3. Use EXACT Google Fonts names with weights
 4. Every section must have a clear layout_type and content structure
-5. Images must have descriptive search queries for Pexels (real photos only)
+5. Images must have DETAILED AI image generation prompts (50+ words each, unique per section). NOT search queries — full descriptions with subject, lighting, composition, mood, style.
 6. Copy must be in the user's language (detect from their brief)
 7. NEVER use pure white (#FFFFFF) or pure black (#000000) — use off-white and near-black
 8. Sections must have VARIETY — never repeat the same layout consecutively
@@ -74,6 +74,15 @@ BANNED ELEMENTS (never include these):
 - Floating orbs / blobs / rainbow gradients
 - Lorem ipsum or placeholder text
 
+AI IMAGE GENERATION RULES (CRITICAL):
+- Every section that uses images MUST have a detailed image_prompt field (50+ words)
+- image_prompt describes the DESIRED image for AI generation, NOT a search query
+- Each image_prompt MUST be COMPLETELY UNIQUE — no two sections should have similar descriptions
+- Include: subject, setting, composition, lighting, color palette, mood, camera angle, style
+- End every prompt with "No text, no watermarks, no logos."
+- GOOD: "A barista carefully pouring steamed milk into a ceramic cup creating latte art, shot from above at 45-degree angle, warm golden morning light streaming through large windows, rustic wooden counter with scattered coffee beans, shallow depth of field, editorial photography style. No text, no watermarks."
+- BAD: "coffee shop interior" (too generic, no details)
+
 SECTION LAYOUT TYPES (use these exact names):
 - hero_fullscreen: Full viewport hero with bg image/video, overlay, headline, CTA
 - hero_split: 50/50 split with text left, image right (or reversed)
@@ -85,7 +94,7 @@ SECTION LAYOUT TYPES (use these exact names):
 - stats_counters: Horizontal row of 3-5 statistics with numbers
 - testimonials_carousel: Client quotes with avatars
 - testimonials_grid: 2-3 testimonials in a grid layout
-- gallery_grid: Photo gallery in masonry or grid layout
+- gallery_grid: Photo gallery in masonry or grid layout. MUST include 4-6 items, each with a UNIQUE image_prompt (50+ words)
 - cta_banner: Full-width call-to-action section
 - faq_accordion: Frequently asked questions with expand/collapse
 - pricing_table: 2-3 pricing tiers side by side
@@ -136,7 +145,7 @@ OUTPUT SCHEMA (you MUST follow this exactly):
       "min_height": "90vh|100vh|80vh",
       "background": {
         "type": "image|color|gradient",
-        "image_query": "pexels search query for background image (if type=image)",
+        "image_prompt": "DETAILED AI image generation prompt (50+ words) describing the desired background image with subject, composition, lighting, color palette, mood, camera angle. Must be unique.",
         "overlay": "bg-gradient-to-b from-black/60 to-black/30 (if type=image)",
         "color": "#hex (if type=color)",
         "gradient": "CSS gradient string (if type=gradient)"
@@ -168,7 +177,7 @@ OUTPUT SCHEMA (you MUST follow this exactly):
             "title": "Item title",
             "description": "Item description",
             "icon": "lucide icon name (e.g., scissors, star, clock)",
-            "image_query": "pexels search query (if section uses images)"
+            "image_prompt": "DETAILED AI image generation prompt (30+ words) for this specific item. Must be UNIQUE — different subject, angle, composition from other items."
           }
         ]
       },

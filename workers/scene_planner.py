@@ -394,73 +394,110 @@ def detect_user_theme_preference(user_brief: str) -> str | None:
 #  CONTENT EXTRACTION VIA LLM
 # ─────────────────────────────────────────────────────────────────
 
-CONTENT_EXTRACTION_PROMPT = """You are a premium landing page content writer for ARCANE.
+CONTENT_EXTRACTION_PROMPT = """You are a premium landing page content writer and visual director for ARCANE.
 
-Given a user brief, generate high-quality marketing content for each scene.
+Given a user brief, generate high-quality marketing content AND detailed AI image generation prompts for each scene.
 Return a JSON object where keys are scene_ids and values are content objects.
 
 User brief: {user_brief}
 Niche: {niche}
 Scene IDs to fill: {scene_ids}
 
+IMAGE GENERATION RULES (CRITICAL):
+1. Every image prompt MUST be a DETAILED description for AI image generation (50+ words)
+2. Every image prompt MUST be UNIQUE -- never repeat the same description
+3. Image prompts describe the DESIRED image, not a search query
+4. Include: subject, composition, lighting, color palette, mood, camera angle, style
+5. NEVER use generic descriptions like "modern office" -- be SPECIFIC
+6. Format: "A [subject] in [setting], [composition details], [lighting], [color palette], [mood]. [style details]. No text, no watermarks."
+
+EXAMPLE image prompts:
+- GOOD: "A barista carefully pouring steamed milk into a ceramic cup creating latte art, shot from above at 45-degree angle, warm golden morning light streaming through large windows, rustic wooden counter with scattered coffee beans, shallow depth of field, editorial photography style. No text, no watermarks."
+- BAD: "coffee shop interior" (too generic, no details)
+
 For each scene, generate the following content:
 
 hero scenes:
   - headline: powerful, short (5-8 words), emotional headline
   - subheadline: 1-2 sentences expanding on the headline
-  - cta_primary_text: action button text (e.g. "Начать бесплатно", "Получить консультацию")
+  - cta_primary_text: action button text
   - cta_primary_href: "#contact"
-  - hero_media_url: Pexels search query for hero image (e.g. "modern office technology team")
-  - kicker: short badge text above headline (e.g. "AI-платформа нового поколения")
+  - hero_image_prompt: DETAILED AI image generation prompt for hero background (50+ words, cinematic, unique)
+  - hero_media_url: same as hero_image_prompt (for backward compatibility)
+  - kicker: short badge text above headline
+
+about scenes:
+  - headline: section title
+  - subheadline: 2-3 sentences about the company/product
+  - about_image_prompt: DETAILED AI image prompt showing the team/workspace/process (50+ words, DIFFERENT from hero)
+  - about_features: array of 3 objects with icon and title for highlight badges
 
 features scenes (features.bento_grid, features.editorial_cards, features.timeline_process):
-  - headline: section title (e.g. "Наши возможности")
+  - headline: section title
   - subheadline: 1 sentence description
   - features: array of EXACTLY 4-6 objects, each with:
     - title: feature name (2-4 words)
     - description: 1-2 sentences about the feature
     - icon: Lucide icon name (use ONLY: code, palette, bar-chart-3, zap, shield, globe, layers, cpu, rocket, target, users, clock, check-circle, star, heart, trending-up, settings, database, lock, sparkles)
+    - image_prompt: DETAILED AI image prompt for this specific feature (30+ words, UNIQUE per feature)
+
+gallery scenes:
+  - headline: section title
+  - gallery_items: array of 4-6 objects, each with:
+    - title: short descriptive title for the image
+    - image_prompt: DETAILED AI image prompt (50+ words, MUST be completely UNIQUE for each item -- different subjects, angles, compositions)
+
+parallax scenes:
+  - quote: inspirational quote or key message
+  - author: quote attribution
+  - parallax_bg_prompt: DETAILED AI image prompt for parallax background (50+ words, atmospheric, moody)
 
 trust.authority_facts_rail:
-  - facts: array of 4 objects with {{value: "500+", label: "Проектов"}}
+  - facts: array of 4 objects with value and label
 
 trust.case_grid:
-  - cases: array of 3 objects with {{title, description, result}}
+  - cases: array of 3 objects with title, description, result, and image_prompt for case study visual
 
 trust.comparison_block:
-  - headline: "Почему мы лучше"
+  - headline: comparison title
   - before_items: array of 3-4 strings (problems without the product)
   - after_items: array of 3-4 strings (benefits with the product)
 
 proof.stats_counters:
-  - stats: array of 4 objects with {{value: "500+", label: "Проектов"}}
+  - stats: array of 4 objects with value and label
 
 testimonials scenes:
-  - testimonials: array of 3 objects with {{quote: "Full testimonial text 2-3 sentences", author: "Full Name", role: "Position, Company"}}
+  - testimonials: array of 3 objects with quote (2-3 sentences), author, and role
+
+pricing scenes:
+  - pricing: array of 2-3 objects with name, price, period, features array, featured boolean, cta_text
 
 cta scenes:
   - headline: compelling call to action headline
   - subheadline: 1-2 sentences urgency/benefit
   - cta_primary_text: button text
   - cta_primary_href: "#contact"
+  - cta_bg_prompt: DETAILED AI image prompt for CTA background (50+ words, dramatic, motivating)
 
 footer:
   - brand_name: company/product name
   - tagline: short company description (1 sentence)
-  - phone: "+7 (XXX) XXX-XX-XX" (generate realistic)
-  - email: "info@domain.com" (generate realistic)
-  - address: realistic Russian city address
-  - social_links: [{{"platform": "Telegram", "url": "#"}}, {{"platform": "VK", "url": "#"}}]
+  - phone: realistic phone number
+  - email: realistic email
+  - address: realistic address
+  - social_links: array of platform and url objects
 
 CRITICAL RULES:
 1. Write in the SAME LANGUAGE as the user brief (Russian if Russian, English if English)
-2. Make ALL content specific to the business described — NO generic placeholder text
-3. hero_media_url MUST be a Pexels search query (2-4 words), NOT a URL
-4. Every features array MUST have exactly 4-6 items with real content
-5. Every testimonials array MUST have exactly 3 items with realistic quotes
-6. Every stats/facts array MUST have exactly 4 items with realistic numbers
-7. Icon names MUST be from the whitelist above — do NOT invent icons
-8. Return ONLY valid JSON, no markdown code blocks, no comments
+2. Make ALL content specific to the business described -- NO generic placeholder text
+3. ALL image prompts MUST be detailed AI generation descriptions (50+ words), NOT search queries
+4. Every image prompt MUST be COMPLETELY UNIQUE -- no two prompts should describe the same scene
+5. Every features array MUST have exactly 4-6 items with real content
+6. Every testimonials array MUST have exactly 3 items with realistic quotes
+7. Every stats/facts array MUST have exactly 4 items with realistic numbers
+8. Icon names MUST be from the whitelist above -- do NOT invent icons
+9. gallery_items MUST have 4-6 items, each with a UNIQUE and DETAILED image_prompt
+10. Return ONLY valid JSON, no markdown code blocks, no comments
 
 Return format:
 {{
