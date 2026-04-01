@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+import random
 from typing import Any, AsyncIterator, Optional
 
 import httpx
@@ -27,6 +28,18 @@ from shared.models.schemas import (
 from shared.utils.logger import get_logger, log_with_data
 
 logger = get_logger("llm.client")
+# ─── Connection pool limits (PATCH-05) ────────────────────────────
+_HTTP_LIMITS = httpx.Limits(
+    max_connections=40,
+    max_keepalive_connections=10,
+    keepalive_expiry=30,
+)
+_HTTP_TIMEOUT = httpx.Timeout(timeout=120.0, connect=10.0)
+
+def _backoff(retry: int) -> float:
+    """Exponential backoff with full jitter: uniform(0, 2^retry)."""
+    return random.uniform(0, min(2 ** retry, 30))
+
 
 
 class ProviderUnavailableError(Exception):
@@ -72,7 +85,8 @@ class UnifiedLLMClient:
                         "Authorization": f"Bearer {self._config.openai.api_key}",
                         "Content-Type": "application/json",
                     },
-                    timeout=httpx.Timeout(self._config.openai.timeout),
+                    timeout=_HTTP_TIMEOUT,
+                    limits=_HTTP_LIMITS,
                 )
             elif provider == Provider.OPENROUTER:
                 self._http_clients[provider] = httpx.AsyncClient(
@@ -83,7 +97,8 @@ class UnifiedLLMClient:
                         "HTTP-Referer": "https://arcane.mksitdev.ru",
                         "X-Title": "ARCANE",
                     },
-                    timeout=httpx.Timeout(self._config.openrouter.timeout),
+                    timeout=_HTTP_TIMEOUT,
+                    limits=_HTTP_LIMITS,
                 )
         return self._http_clients[provider]
 
@@ -356,7 +371,7 @@ class UnifiedLLMClient:
 
                 if resp.status_code >= 500:
                     # Server error — retry
-                    await asyncio.sleep(2 ** retry)
+                    await asyncio.sleep(_backoff(retry))
                     continue
 
                 resp.raise_for_status()
@@ -367,23 +382,23 @@ class UnifiedLLMClient:
 
             except httpx.ConnectError as e:
                 last_error = e
-                await asyncio.sleep(2 ** retry)
+                await asyncio.sleep(_backoff(retry))
             except httpx.TimeoutException as e:
                 last_error = e
-                await asyncio.sleep(2 ** retry)
+                await asyncio.sleep(_backoff(retry))
             except httpx.ReadError as e:
                 last_error = e
-                await asyncio.sleep(2 ** retry)
+                await asyncio.sleep(_backoff(retry))
             except httpx.RemoteProtocolError as e:
                 last_error = e
-                await asyncio.sleep(2 ** retry)
+                await asyncio.sleep(_backoff(retry))
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (401, 403):
                     raise ProviderUnavailableError(
                         f"Auth error for {provider.value}: {e.response.status_code}"
                     )
                 last_error = e
-                await asyncio.sleep(2 ** retry)
+                await asyncio.sleep(_backoff(retry))
 
         raise ProviderUnavailableError(
             f"Failed after {max_retries} retries for {model_id}: {last_error}"

@@ -44,6 +44,21 @@ playwright install chromium --with-deps > /dev/null 2>&1
 
 echo "  Done: Python environment"
 
+# 2.5. Backup existing database before any changes
+echo "[BACKUP] Creating database backup before setup..."
+BACKUP_DIR="/root/arcane/backups"
+mkdir -p "$BACKUP_DIR"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+if command -v pg_dump &> /dev/null && sudo -u postgres psql -lqt 2>/dev/null | grep -qw arcane; then
+    sudo -u postgres pg_dump arcane > "$BACKUP_DIR/arcane_pre_setup_${TIMESTAMP}.sql" 2>/dev/null && \
+        echo "  Done: Database backup saved to $BACKUP_DIR/arcane_pre_setup_${TIMESTAMP}.sql" || \
+        echo "  SKIP: pg_dump failed (database may not exist yet)"
+    # Keep only last 5 backups
+    ls -t "$BACKUP_DIR"/arcane_pre_setup_*.sql 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
+else
+    echo "  SKIP: No existing database to backup"
+fi
+
 # 3. PostgreSQL setup
 echo "[3/8] Configuring PostgreSQL..."
 sudo -u postgres psql -c "CREATE USER arcane WITH PASSWORD 'arcane_secret';" 2>/dev/null || true

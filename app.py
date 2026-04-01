@@ -84,6 +84,8 @@ async def lifespan(app: FastAPI):
     from api.rate_limiter import cleanup_old_entries
     asyncio.create_task(cleanup_old_entries())
     logger.info("Rate limiter active")
+    asyncio.create_task(_cleanup_ws_rate_limits())
+    logger.info("WS rate limiter cleanup task started")
     # ═══ WORKER POOL STARTUP ═══
     try:
         from core.worker_pool import start_pool
@@ -185,6 +187,23 @@ def _check_ws_rate_limit(user_id: str) -> bool:
     _ws_rate_limits[user_id].append(now)
     return True
 
+
+
+async def _cleanup_ws_rate_limits() -> None:
+    """Periodically purge stale WebSocket rate limit entries to prevent OOM."""
+    while True:
+        await asyncio.sleep(300)  # every 5 minutes
+        now = _time.time()
+        cutoff = now - _WS_RATE_WINDOW
+        dead_keys = [
+            k for k, timestamps in _ws_rate_limits.items()
+            if not timestamps or max(timestamps) < cutoff
+        ]
+        for k in dead_keys:
+            del _ws_rate_limits[k]
+        if dead_keys:
+            logger.debug(f"WS rate limiter cleanup: removed {len(dead_keys)} stale entries")
+
 def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
     application = FastAPI(
@@ -271,6 +290,21 @@ def create_app() -> FastAPI:
             pass
         return response
 
+
+    # PATCH-02c: Limit request body size to prevent DoS
+    MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
+
+    @application.middleware("http")
+    async def limit_body_size(request: Request, call_next):
+        """Reject requests larger than MAX_REQUEST_BODY_SIZE to prevent DoS."""
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > MAX_REQUEST_BODY_SIZE:
+            return JSONResponse(
+                status_code=413,
+                content={"ok": False, "error": "Request body too large", "max_bytes": MAX_REQUEST_BODY_SIZE},
+            )
+        return await call_next(request)
+
     # S6: Request ID middleware — adds X-Request-ID to every response
     import uuid as _uuid
     @application.middleware("http")
@@ -309,14 +343,7 @@ def create_app() -> FastAPI:
     @application.get("/")
     async def root():
         from api.agent_runner import get_active_agents
-        # Include worker pool stats
-        try:
-            from core.worker_pool import _pool_instance
-            if _pool_instance:
-                status_data["worker_pool"] = _pool_instance.get_pool_stats()
-        except Exception:
-            pass
-        return {
+        status_data: dict = {
             "name": "ARCANE",
             "version": VERSION,
             "domain": "arcaneai.ru",
@@ -332,6 +359,13 @@ def create_app() -> FastAPI:
                 "ws": "/ws/{chat_id}",
             },
         }
+        try:
+            from core.worker_pool import _pool_instance
+            if _pool_instance:
+                status_data["worker_pool"] = _pool_instance.get_pool_stats()
+        except Exception:
+            pass
+        return status_data
 
     # ─── WebSocket ───────────────────────────────────────────────────────
 

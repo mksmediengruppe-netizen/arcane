@@ -10,6 +10,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
+from functools import lru_cache
 
 
 class Environment(str, Enum):
@@ -162,6 +163,7 @@ class ArcaneConfig:
         return _os.path.join(self.workspace_root, project_id)
 
 
+@lru_cache(maxsize=1)
 def get_config() -> ArcaneConfig:
-    """Singleton-style config loader."""
+    """True singleton config loader. Cached after first call."""
     return ArcaneConfig()

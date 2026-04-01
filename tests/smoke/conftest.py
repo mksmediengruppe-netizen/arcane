@@ -13,8 +13,8 @@ import pytest_asyncio
 import httpx
 
 # ── Configuration ──────────────────────────────────────────────────────────
-# Server runs on port 8900 (see Dockerfile CMD and systemd service)
-BASE_URL = os.getenv("ARCANE_TEST_URL", "http://localhost:8900")
+# Server runs on port 8100 (see Dockerfile CMD and systemd service)
+BASE_URL = os.getenv("ARCANE_TEST_URL", "http://localhost:8100")
 TEST_USER_PREFIX = "smoke_test_"
 
 # Cache registered users across tests (module-level, not async)

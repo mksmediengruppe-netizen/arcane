@@ -25,6 +25,7 @@ _cancel_flags: dict[str, bool] = {}
 _message_queues: dict[str, asyncio.Queue] = {}
 _queue_processors: dict[str, asyncio.Task] = {}
 _agent_instances: dict[str, object] = {}  # AgentLoop instances for resume
+_agent_locks: dict[str, asyncio.Lock] = {}  # Per-chat locks to prevent race conditions
 _task_queue_instance = None  # Lazy-initialized TaskQueue singleton
 
 
@@ -179,6 +180,26 @@ async def _start_agent_direct(
     premium_review: bool = False,
 ) -> str:
     """Original direct execution path (fallback when Redis unavailable)."""
+    # PATCH-06: Per-chat lock to prevent race conditions
+    if chat_id not in _agent_locks:
+        _agent_locks[chat_id] = asyncio.Lock()
+    async with _agent_locks[chat_id]:
+        return await _start_agent_direct_inner(
+            chat_id, user_message, user_id, project_id,
+            model_strategy, premium_images, design_check, premium_review,
+        )
+
+async def _start_agent_direct_inner(
+    chat_id: str,
+    user_message: str,
+    user_id: str = "",
+    project_id: Optional[str] = None,
+    model_strategy: str = "balance",
+    premium_images: bool = False,
+    design_check: bool = False,
+    premium_review: bool = False,
+) -> str:
+    """Inner implementation of direct execution (called under lock)."""
     if chat_id in _running_agents and not _running_agents[chat_id].done():
         if chat_id not in _message_queues:
             _message_queues[chat_id] = asyncio.Queue(maxsize=10)

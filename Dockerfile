@@ -32,11 +32,11 @@ COPY . .
 RUN mkdir -p /root/workspace /root/workspace/screenshots
 
 # Expose port
-EXPOSE 8900
+EXPOSE 8100
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8900/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8100/api/health || exit 1
 
 # Start
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8900", "--workers", "1"]
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8100", "--workers", "1"]

@@ -45,7 +45,13 @@ def _cleanup_expired():
             expired_keys.append(key)
     for key in expired_keys:
         del _request_log[key]
-_lock = asyncio.Lock()
+_key_locks: dict[str, asyncio.Lock] = {}
+
+def _get_key_lock(key: str) -> asyncio.Lock:
+    """Get or create a per-key lock to reduce contention."""
+    if key not in _key_locks:
+        _key_locks[key] = asyncio.Lock()
+    return _key_locks[key]
 
 
 def _get_client_key(request: Request, limit_name: str) -> str:
@@ -105,7 +111,7 @@ async def check_rate_limit(
     now = time.monotonic()
     window_start = now - window_seconds
     
-    async with _lock:
+    async with _get_key_lock(key):
         q = _request_log[key]
         
         # Remove expired entries
@@ -150,7 +156,7 @@ async def get_rate_limit_status(request: Request) -> dict:
         now = time.monotonic()
         window_start = now - window
         
-        async with _lock:
+        async with _get_key_lock(key):
             q = _request_log[key]
             while q and q[0] < window_start:
                 q.popleft()
@@ -171,15 +177,16 @@ async def cleanup_old_entries():
     while True:
         await asyncio.sleep(300)  # Every 5 minutes
         now = time.monotonic()
-        async with _lock:
-            keys_to_delete = []
-            for key, q in _request_log.items():
-                # Remove entries older than the longest window (60s)
-                while q and q[0] < now - 60:
-                    q.popleft()
-                if not q:
-                    keys_to_delete.append(key)
-            for key in keys_to_delete:
-                del _request_log[key]
+        # Cleanup iterates all keys without global lock (deque ops are thread-safe in CPython)
+        keys_to_delete = []
+        for key, q in _request_log.items():
+            # Remove entries older than the longest window (60s)
+            while q and q[0] < now - 60:
+                q.popleft()
+            if not q:
+                keys_to_delete.append(key)
+        for key in keys_to_delete:
+            del _request_log[key]
+            _key_locks.pop(key, None)  # Also clean up stale locks
         if keys_to_delete:
             logger.info(f"Rate limiter cleanup: removed {len(keys_to_delete)} expired keys")

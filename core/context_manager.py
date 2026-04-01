@@ -25,7 +25,28 @@ from shared.utils.logger import get_logger
 logger = get_logger("core.context_manager")
 
 # Rough token estimation: 1 token ≈ 4 chars for English, 2 chars for Russian
-CHARS_PER_TOKEN = 3  # conservative average
+CHARS_PER_TOKEN_LATIN = 4   # ~4 chars per token for English/code
+CHARS_PER_TOKEN_CYRILLIC = 2  # ~2 chars per token for Russian/Cyrillic
+
+def _estimate_tokens_for_text(text: str) -> int:
+    """Estimate token count with Cyrillic awareness.
+    
+    Cyrillic characters use ~2 chars per token vs ~4 for Latin/code.
+    We count the ratio and blend accordingly.
+    """
+    if not text:
+        return 0
+    cyrillic_count = sum(1 for c in text if '\u0400' <= c <= '\u04FF')
+    total_chars = len(text)
+    if total_chars == 0:
+        return 0
+    cyrillic_ratio = cyrillic_count / total_chars
+    # Weighted average of chars-per-token
+    effective_cpt = (
+        cyrillic_ratio * CHARS_PER_TOKEN_CYRILLIC +
+        (1 - cyrillic_ratio) * CHARS_PER_TOKEN_LATIN
+    )
+    return max(1, int(total_chars / effective_cpt))
 
 
 class Scratchpad:
@@ -126,15 +147,16 @@ class ContextCompactor:
         self._last_compaction_iteration = 0
 
     def estimate_tokens(self, messages: list[dict]) -> int:
-        """Rough token estimate for a message list."""
-        total_chars = 0
+        """Token estimate with Cyrillic awareness (PATCH-08)."""
+        total = 0
         for msg in messages:
             content = msg.get("content", "") or ""
-            total_chars += len(content)
-            # Tool calls add overhead
+            total += _estimate_tokens_for_text(content)
+            # Tool calls are mostly JSON/code — use Latin ratio
             if "tool_calls" in msg:
-                total_chars += len(json.dumps(msg["tool_calls"], default=str))
-        return total_chars // CHARS_PER_TOKEN
+                tc_str = json.dumps(msg["tool_calls"], default=str)
+                total += len(tc_str) // CHARS_PER_TOKEN_LATIN
+        return total
 
     def needs_compaction(self, messages: list[dict], iteration: int = 0) -> bool:
         """Check if the message list needs compaction.
@@ -260,7 +282,7 @@ class ContextCompactor:
         # Build the compacted history message
         summary_text = "\n".join(summary_parts)
         # Truncate summary if too long
-        max_summary_chars = self._summary_max_tokens * CHARS_PER_TOKEN
+        max_summary_chars = self._summary_max_tokens * CHARS_PER_TOKEN_CYRILLIC  # Use Cyrillic ratio for safety
         if len(summary_text) > max_summary_chars:
             summary_text = summary_text[:max_summary_chars] + "\n... [earlier history truncated]"
 

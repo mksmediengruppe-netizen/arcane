@@ -1,9 +1,6 @@
 version: "3.8"
 
 services:
-  # ============================================
-  # ARCANE Core
-  # ============================================
   arcane-api:
     build:
       context: .
@@ -11,25 +8,30 @@ services:
     container_name: arcane-api
     restart: unless-stopped
     ports:
-      - "8900:8900"
+      - "8100:8100"
     env_file:
       - .env
     environment:
-      - PORT=8900
+      - PORT=8100
       - ENVIRONMENT=production
     volumes:
       - workspace:/root/workspace
       - screenshots:/root/workspace/screenshots
       - ./:/app
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - arcane-net
 
-  # ============================================
-  # Infrastructure
-  # ============================================
   postgres:
     image: postgres:16-alpine
     container_name: arcane-postgres
@@ -45,16 +47,24 @@ services:
     networks:
       - arcane-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arcane"]
+      test: ["CMD-SHELL", "pg_isready -U arcane -d arcane"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
     container_name: arcane-redis
     restart: unless-stopped
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy volatile-lru
+      --appendonly yes
+      --appendfsync everysec
+      --save 60 1
+      --save 300 10
     volumes:
       - redis_data:/data
     ports:
@@ -104,22 +114,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ============================================
-  # Browser (Playwright)
-  # ============================================
-  browser:
-    image: mcr.microsoft.com/playwright:v1.40.0-jammy
-    container_name: arcane-browser
-    restart: unless-stopped
-    command: >
-      bash -c "
-        pip install playwright fastapi uvicorn &&
-        python -c 'from playwright.sync_api import sync_playwright; sync_playwright().start()' &&
-        tail -f /dev/null
-      "
-    shm_size: 2gb
-    networks:
-      - arcane-net
+  # Browser service removed — Playwright runs inside arcane-api via tool_executor.py
 
 volumes:
   postgres_data:

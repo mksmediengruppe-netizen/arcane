@@ -111,6 +111,36 @@ class LoopStatus(str, Enum):
     WAITING_USER = "waiting_user"
 
 
+
+# ─── Intent → Complexity mapping (PATCH-09) ──────────────────────
+INTENT_COMPLEXITY: dict[str, dict] = {
+    "complex": {
+        "markers": [
+            "сайт", "лендинг", "landing", "website", "приложение", "application",
+            "dashboard", "полный", "full", "complete", "redesign", "migrate",
+            "магазин", "shop", "store", "портал", "portal", "платформ", "platform",
+            "многостранич", "multi-page", "fullstack", "фулстек",
+        ],
+        "max_iterations": 50,
+    },
+    "moderate": {
+        "markers": [
+            "настрой", "установи", "setup", "configure", "integrate", "deploy",
+            "автоматиз", "automat", "workflow", "api", "исправ", "fix", "bug",
+            "добав", "add", "feature", "обнов", "update", "refactor",
+        ],
+        "max_iterations": 30,
+    },
+    "simple": {
+        "markers": [
+            "проверь", "check", "status", "покажи", "show", "найди", "find",
+            "скажи", "tell", "объясни", "explain", "помоги", "help", "что такое",
+            "what is", "как", "how", "список", "list",
+        ],
+        "max_iterations": 15,
+    },
+}
+
 class AgentLoop:
     """
     The main autonomous execution engine.
@@ -197,22 +227,16 @@ class AgentLoop:
 
 
     def _adjust_max_iterations(self, user_message: str) -> None:
-        """FIX NEW-007: Dynamically adjust max iterations based on task complexity."""
-        complexity_markers = {
-            "complex": ["сайт", "лендинг", "landing", "website", "приложение", "application",
-                       "dashboard", "полный", "full", "complete", "redesign", "migrate"],
-            "moderate": ["настрой", "установи", "setup", "configure", "integrate", "deploy",
-                        "автоматиз", "automat", "workflow", "api"],
-            "simple": ["проверь", "check", "status", "покажи", "show", "найди", "find",
-                       "скажи", "tell", "объясни", "explain"],
-        }
+        """Dynamically adjust max iterations based on task complexity (PATCH-09).
+        Uses module-level INTENT_COMPLEXITY for easy tuning.
+        """
         msg_lower = user_message.lower()
         detected = "moderate"  # default
-        for level, markers in complexity_markers.items():
-            if any(m in msg_lower for m in markers):
+        for level, cfg in INTENT_COMPLEXITY.items():
+            if any(m in msg_lower for m in cfg["markers"]):
                 detected = level
                 break
-        self._max_iterations = self._adaptive_iteration_limits.get(detected, 25)
+        self._max_iterations = INTENT_COMPLEXITY[detected]["max_iterations"]
         logger.info(f"Task complexity: {detected}, max_iterations: {self._max_iterations}")
 
 
