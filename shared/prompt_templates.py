@@ -258,34 +258,70 @@ System environment:
 # ── Workflow: Web Design ──
 WEB_DESIGN_WORKFLOW = {
     "ru": """<web_design_workflow>
-Для лендингов и сайтов:
-1. Создай план (plan tool) с фазами: дизайн → код → проверка → деплой → результат
-2. image_generate — СНАЧАЛА сгенерируй 3-5 уникальных AI-изображений для hero, баннеров и ключевых секций
-3. pexels_search — используй ТОЛЬКО для второстепенных/фоновых изображений, где подходят стоковые фото
-4. Пиши ВЕСЬ HTML в ОДНОМ file_write вызове. НЕ разбивай на части.
-5. Используй inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
-6. ЧЕРЕДУЙ светлые и тёмные секции для контраста. НЕ делай всё одного цвета.
-7. Добавляй WOW-эффекты: параллакс, scroll-анимации, hover-эффекты, градиенты
-8. browser_navigate file:///path/to/file.html + design_judge — проверь визуально (НИКОГДА не используй localhost)
-9. Исправь если оценка < 8.0
-10. ОБЯЗАТЕЛЬНО: message(type="result") со ссылкой на готовый лендинг
+Для лендингов и сайтов — ОБЯЗАТЕЛЬНЫЙ pipeline (как Manus):
+
+ШАГ 1 — ДИЗАЙН-БРЕЙНСТОРМ (до кода):
+- Выбери конкретную дизайн-философию (тёмная роскошь, светлый минимализм, бруталист, органика и т.д.)
+- Определи палитру (5+ цветов с hex), пару шрифтов (display + body), парадигму layout
+- Спланируй ВСЕ секции: hero, features, about, gallery, testimonials, pricing, CTA, footer
+
+ШАГ 2 — ГЕНЕРАЦИЯ AI-ИЗОБРАЖЕНИЙ (до HTML):
+- Сгенерируй 5-7 уникальных AI-изображений через `image_generate`
+- Каждое изображение — РАЗНЫЙ сюжет: hero (широкий план), about (команда/процесс), gallery×3 (разные продукты/ракурсы), feature (деталь), CTA (фон)
+- Каждый промпт 50+ слов: сюжет, композиция, свет, настроение, палитра, ракурс, стиль
+- НИКОГДА не генерируй два изображения с одинаковым сюжетом
+
+ШАГ 3 — КОД (один file_write):
+- Пиши ВЕСЬ HTML с нуля в ОДНОМ file_write. НЕ вызывай get_template.
+- Используй: Tailwind CSS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
+- ОБЯЗАТЕЛЬНО используй КАЖДОЕ сгенерированное AI-изображение. НЕ пропускай ни одного.
+- ЗАПРЕЩЕНО: Unsplash URL (images.unsplash.com), placeholder, повторение одного изображения
+- Gallery: 3-5 элементов, каждый с УНИКАЛЬНЫМ AI-изображением
+- ЧЕРЕДУЙ светлые и тёмные секции. Добавляй WOW-эффекты.
+
+ШАГ 4 — ПРОВЕРКА:
+- НЕ используй browser_navigate на localhost/127.0.0.1 — нет HTTP-сервера
+- Файл автоматически доступен по workspace URL после file_write
+- Используй design_judge для оценки. Исправляй если < 8.0
+
+ШАГ 5 — РЕЗУЛЬТАТ:
+- ОБЯЗАТЕЛЬНО: message(type="result") со ссылкой на готовый лендинг
+- НИКОГДА не заканчивай без отправки ссылки
+
 Стандарт: уровень Awwwards. Каждый пиксель важен.
-НИКОГДА не заканчивай без отправки ссылки пользователю.
 </web_design_workflow>""",
     "en": """<web_design_workflow>
-For landing pages and websites:
-1. Create a plan (plan tool) with phases: design → code → review → deploy → result
-2. image_generate — FIRST generate 3-5 unique AI images for hero, banners, and key sections
-3. pexels_search — use ONLY for secondary/background images where stock photos are acceptable
-4. Write ALL HTML in ONE file_write call. Do NOT split into parts.
-5. Use inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
-6. ALTERNATE light and dark sections for contrast. Do NOT make everything one color.
-7. Add WOW effects: parallax, scroll animations, hover effects, gradients
-8. browser_navigate file:///path/to/file.html + design_judge — verify visually (NEVER use localhost)
-9. Fix if score < 8.0
-10. MANDATORY: message(type="result") with link to the finished landing page
+For landing pages and websites — MANDATORY pipeline (Manus-level):
+
+STEP 1 — DESIGN BRAINSTORM (before code):
+- Choose a specific design philosophy (dark luxury, light minimal, brutalist, organic, etc.)
+- Define palette (5+ colors with hex), font pairing (display + body), layout paradigm
+- Plan ALL sections: hero, features, about, gallery, testimonials, pricing, CTA, footer
+
+STEP 2 — AI IMAGE GENERATION (before HTML):
+- Generate 5-7 unique AI images via `image_generate`
+- Each image — DIFFERENT subject: hero (wide shot), about (team/process), gallery×3 (different products/angles), feature (detail), CTA (background)
+- Each prompt 50+ words: subject, composition, lighting, mood, palette, camera angle, style
+- NEVER generate two images with the same subject
+
+STEP 3 — CODE (single file_write):
+- Write ALL HTML from scratch in ONE file_write. Do NOT call get_template.
+- Use: Tailwind CSS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
+- MUST use EVERY generated AI image. Do NOT skip any.
+- FORBIDDEN: Unsplash URLs (images.unsplash.com), placeholders, repeating same image
+- Gallery: 3-5 items, each with a UNIQUE AI-generated image
+- ALTERNATE light and dark sections. Add WOW effects.
+
+STEP 4 — VERIFY:
+- Do NOT use browser_navigate to localhost/127.0.0.1 — no HTTP server available
+- File is automatically served at workspace URL after file_write
+- Use design_judge to evaluate. Fix if < 8.0
+
+STEP 5 — DELIVER:
+- MANDATORY: message(type="result") with link to the finished landing page
+- NEVER finish without sending the link
+
 Standard: Awwwards level. Every pixel matters.
-NEVER finish without sending the link to the user.
 </web_design_workflow>""",
 }
 
