@@ -2,7 +2,7 @@
 // Tabs: Live, Browser, Steps, Logs, Files, Verification, Result
 // Features: browser preview, file preview with syntax highlighting, task progress
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { type Step, type LogEntry, type Artifact as MockArtifact } from "@/lib/mockData";
 import {
@@ -10,7 +10,8 @@ import {
   Terminal, Globe, Search, ChevronDown, ChevronRight, Star,
   FileText, FileCode, Image as ImageIcon, Download, Eye, CheckCircle2, XCircle,
   AlertTriangle, Loader2, Clock, X, Circle, Monitor, Copy, Check,
-  ArrowLeft, ArrowRight, RefreshCw, Lock, Code2, BarChart2, Layers
+  ArrowLeft, ArrowRight, RefreshCw, Lock, Code2, BarChart2, Layers,
+  ExternalLink, Brain, Smartphone, Tablet, Maximize2, Minimize2
 } from "lucide-react";
 import { SessionInsightsTab } from "@/components/arcane/SessionInsights";
 import { AgentBrowser, type BrowserOfflineReason } from "@/components/arcane/AgentBrowser";
@@ -20,14 +21,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const TABS = [
   { id: "live",      label: "Live",       icon: <Activity size={13} /> },
+  { id: "preview",   label: "Превью",     icon: <Eye size={13} /> },
   { id: "browser",   label: "Браузер",    icon: <Monitor size={13} /> },
+  { id: "thinking",  label: "Мышление",   icon: <Brain size={13} /> },
   { id: "artifacts", label: "Артефакты",  icon: <Layers size={13} /> },
   { id: "steps",     label: "Шаги",       icon: <ListChecks size={13} /> },
-  { id: "logs",      label: "Логи",        icon: <ScrollText size={13} /> },
-  { id: "files",     label: "Файлы",      icon: <FolderOpen size={13} /> },
-  { id: "insights",  label: "Инсайты",    icon: <BarChart2 size={13} /> },
-  { id: "verify",    label: "Проверка",   icon: <ShieldCheck size={13} /> },
-  { id: "result",    label: "Результат",  icon: <Trophy size={13} /> },
+  { id: "logs",      label: "Логи",       icon: <ScrollText size={13} /> },
 ];
 
 interface RightPanelProps {
@@ -46,9 +45,13 @@ interface RightPanelProps {
   logs?: LogEntry[];
   /** Chat status from backend (e.g. 'working', 'executing', 'thinking') */
   chatStatus?: string;
+  /** Thinking content from agent reasoning */
+  thinkingContent?: string;
+  /** Messages for extracting preview URLs */
+  messages?: import("@/lib/mockData").Message[];
 }
 
-export function RightPanel({ activeStep, onStepSelect, defaultTab = "live", steps, plan, completedSteps, activeStepTitle, isRunning, currentTool, pendingArtifact, onArtifactConsumed, logs, chatStatus }: RightPanelProps) {
+export function RightPanel({ activeStep, onStepSelect, defaultTab = "live", steps, plan, completedSteps, activeStepTitle, isRunning, currentTool, pendingArtifact, onArtifactConsumed, logs, chatStatus, thinkingContent, messages }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null);
   const [browserOfflineReason, setBrowserOfflineReason] = useState<BrowserOfflineReason>("none");
@@ -113,6 +116,7 @@ export function RightPanel({ activeStep, onStepSelect, defaultTab = "live", step
             className="h-full"
           >
             {activeTab === "live"      && <LiveTab plan={plan} completedSteps={completedSteps} activeStepTitle={activeStepTitle} totalSteps={steps?.length} isRunning={isRunning} currentTool={currentTool} steps={steps} chatStatus={chatStatus} />}
+            {activeTab === "preview"   && <PreviewTab messages={messages} isRunning={isRunning} />}
             {activeTab === "browser"   && (
               <div className="h-full flex flex-col">
                 {/* Takeover banner */}
@@ -187,18 +191,328 @@ export function RightPanel({ activeStep, onStepSelect, defaultTab = "live", step
                 ? <ArtifactViewer artifact={selectedArtifact} onClose={() => setSelectedArtifact(null)} className="h-full rounded-none border-0" />
                 : <ArtifactList artifacts={[]} onSelect={setSelectedArtifact} />
             )}
+            {activeTab === "thinking"  && <ThinkingTab thinkingContent={thinkingContent} isRunning={isRunning} />}
             {activeTab === "steps"     && <StepsTab activeStep={activeStep} onStepSelect={onStepSelect} steps={steps} />}
             {activeTab === "logs"      && <LogsTab steps={steps} logs={logs} />}
-            {activeTab === "files"     && <FilesTab steps={steps} />}
-            {activeTab === "insights"  && <SessionInsightsTab />}
-            {activeTab === "verify"    && <VerifyTab />}
-            {activeTab === "result"    && <ResultTab />}
+            {false && activeTab === "files"     && <FilesTab steps={steps} />}
+            {false && activeTab === "insights"  && <SessionInsightsTab />}
+            {false && activeTab === "verify"    && <VerifyTab />}
+            {false && activeTab === "result"    && <ResultTab />}
           </motion.div>
         </AnimatePresence>
       </div>
     </aside>
   );
 }
+
+
+// ─── Preview Tab ──────────────────────────────────────────────────────────────
+
+type ViewportSize = "desktop" | "tablet" | "mobile";
+
+const VIEWPORT_SIZES: Record<ViewportSize, { width: string; label: string; icon: React.ReactNode }> = {
+  desktop: { width: "100%", label: "Десктоп", icon: <Monitor size={14} /> },
+  tablet:  { width: "768px", label: "Планшет", icon: <Tablet size={14} /> },
+  mobile:  { width: "375px", label: "Мобильный", icon: <Smartphone size={14} /> },
+};
+
+function PreviewTab({ messages, isRunning }: { messages?: import("@/lib/mockData").Message[]; isRunning?: boolean }) {
+  const [viewport, setViewport] = useState<ViewportSize>("desktop");
+  const [customUrl, setCustomUrl] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Extract preview URL from messages — look for arcaneai.ru/demo/ URLs
+  const previewUrl = useMemo(() => {
+    if (customUrl) return customUrl;
+    if (!messages || messages.length === 0) return "";
+    
+    // Search messages in reverse for the latest deploy URL
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      
+      // Check attachments for preview_url
+      if (msg.attachments) {
+        for (const att of msg.attachments) {
+          if (att.preview_url && att.preview_url.includes("/demo/")) return att.preview_url;
+          if (att.download_url && att.download_url.includes("/demo/")) return att.download_url;
+        }
+      }
+      
+      // Check message content for arcaneai.ru/demo/ URLs
+      if (msg.content) {
+        const urlMatch = msg.content.match(/https?:\/\/arcaneai\.ru\/demo\/[^\s"'<>)]+/);
+        if (urlMatch) return urlMatch[0];
+        // Also check for any URL with /demo/
+        const demoMatch = msg.content.match(/https?:\/\/[^\s"'<>)]*\/demo\/[^\s"'<>)]+/);
+        if (demoMatch) return demoMatch[0];
+      }
+    }
+    return "";
+  }, [messages, customUrl]);
+
+  const handleRefresh = () => {
+    if (iframeRef.current) {
+      setIsLoading(true);
+      iframeRef.current.src = iframeRef.current.src;
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen && containerRef.current) {
+      containerRef.current.requestFullscreen?.();
+      setIsFullscreen(true);
+    } else if (isFullscreen) {
+      document.exitFullscreen?.();
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
+  if (!previewUrl) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* URL input bar */}
+        <div className="shrink-0 border-b border-gray-100 dark:border-[#2a2d3a] bg-gray-50 dark:bg-[#1a1d2e] px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <Globe size={14} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              value={customUrl}
+              onChange={e => setCustomUrl(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && customUrl && setCustomUrl(customUrl)}
+              placeholder="Вставьте URL лендинга для предпросмотра..."
+              className="flex-1 bg-white dark:bg-[#0f1117] border border-gray-200 dark:border-[#2a2d3a] rounded-lg px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400"
+            />
+          </div>
+        </div>
+        {/* Empty state */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center mx-auto">
+              <Eye size={28} className="text-indigo-400" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">Превью недоступно</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500 max-w-[240px]">
+                {isRunning 
+                  ? "Агент ещё работает. Превью появится после деплоя лендинга."
+                  : "Вставьте URL выше или отправьте задачу агенту для создания лендинга."
+                }
+              </div>
+            </div>
+            {isRunning && (
+              <div className="flex items-center justify-center gap-2 text-xs text-indigo-500">
+                <Loader2 size={12} className="animate-spin" />
+                <span>Ожидание деплоя...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="flex flex-col h-full bg-gray-100 dark:bg-[#0a0c14]">
+      {/* Toolbar */}
+      <div className="shrink-0 border-b border-gray-200 dark:border-[#2a2d3a] bg-white dark:bg-[#0f1117] px-3 py-2 space-y-2">
+        {/* URL bar */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={handleRefresh} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Обновить">
+              <RefreshCw size={13} className={cn("text-gray-500", isLoading && "animate-spin")} />
+            </button>
+          </div>
+          <div className="flex-1 flex items-center gap-1.5 bg-gray-50 dark:bg-[#1a1d2e] border border-gray-200 dark:border-[#2a2d3a] rounded-lg px-2.5 py-1.5">
+            <Lock size={10} className="text-green-500 shrink-0" />
+            <span className="text-[11px] text-gray-600 dark:text-gray-400 font-mono truncate flex-1">{previewUrl}</span>
+          </div>
+          <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title="Открыть в новой вкладке">
+            <ExternalLink size={13} className="text-gray-500" />
+          </a>
+          <button onClick={toggleFullscreen} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" title={isFullscreen ? "Выйти из полноэкранного" : "Полноэкранный режим"}>
+            {isFullscreen ? <Minimize2 size={13} className="text-gray-500" /> : <Maximize2 size={13} className="text-gray-500" />}
+          </button>
+        </div>
+        {/* Viewport controls */}
+        <div className="flex items-center gap-1">
+          {(Object.entries(VIEWPORT_SIZES) as [ViewportSize, typeof VIEWPORT_SIZES[ViewportSize]][]).map(([key, val]) => (
+            <button
+              key={key}
+              onClick={() => setViewport(key)}
+              className={cn(
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all",
+                viewport === key
+                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
+            >
+              {val.icon}
+              {val.label}
+            </button>
+          ))}
+          <div className="ml-auto text-[10px] text-gray-400 font-mono">
+            {VIEWPORT_SIZES[viewport].width === "100%" ? "100%" : VIEWPORT_SIZES[viewport].width}
+          </div>
+        </div>
+      </div>
+      
+      {/* iframe container */}
+      <div className="flex-1 overflow-hidden flex items-start justify-center p-2">
+        <div 
+          className={cn(
+            "h-full bg-white dark:bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 border border-gray-200 dark:border-gray-700",
+            viewport === "desktop" ? "w-full" : ""
+          )}
+          style={viewport !== "desktop" ? { width: VIEWPORT_SIZES[viewport].width, maxWidth: "100%" } : undefined}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 z-10">
+              <Loader2 size={24} className="text-indigo-500 animate-spin" />
+            </div>
+          )}
+          <iframe
+            ref={iframeRef}
+            src={previewUrl}
+            className="w-full h-full border-0"
+            onLoad={() => setIsLoading(false)}
+            title="Landing Page Preview"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Thinking Tab ─────────────────────────────────────────────────────────────
+
+function ThinkingTab({ thinkingContent, isRunning }: { thinkingContent?: string; isRunning?: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
+
+  // Auto-scroll to bottom when new content arrives
+  useEffect(() => {
+    if (autoScroll && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [thinkingContent, autoScroll]);
+
+  const handleScroll = () => {
+    if (!scrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    setAutoScroll(scrollHeight - scrollTop - clientHeight < 50);
+  };
+
+  if (!thinkingContent) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[200px] p-6 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40 flex items-center justify-center mb-3">
+          <Brain size={24} className="text-purple-400 dark:text-purple-500" />
+        </div>
+        <div className="text-sm font-medium text-gray-400 dark:text-gray-500">Размышления агента</div>
+        <div className="text-xs text-gray-300 dark:text-gray-600 mt-1 max-w-[240px]">
+          {isRunning 
+            ? "Агент думает... Размышления появятся здесь в реальном времени."
+            : "Здесь будут отображаться мысли и рассуждения агента во время выполнения задачи."
+          }
+        </div>
+        {isRunning && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" style={{ animationDelay: "0.2s" }} />
+            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" style={{ animationDelay: "0.4s" }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Parse thinking content into blocks
+  const blocks = thinkingContent.split("\n").filter(line => line.trim());
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="shrink-0 border-b border-gray-100 dark:border-[#2a2d3a] bg-gray-50 dark:bg-[#1a1d2e] px-3 py-2 flex items-center gap-2">
+        <Brain size={14} className="text-purple-500" />
+        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Размышления агента</span>
+        {isRunning && (
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+            <span className="text-[10px] text-purple-500 font-medium">В процессе</span>
+          </div>
+        )}
+        {!isRunning && (
+          <span className="text-[10px] text-gray-400 ml-auto font-mono">{blocks.length} блоков</span>
+        )}
+      </div>
+
+      {/* Content */}
+      <div 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        style={{ scrollbarWidth: "thin" }}
+      >
+        {blocks.map((block, i) => {
+          const isLast = i === blocks.length - 1;
+          const isAction = block.startsWith("→") || block.startsWith("->") || block.includes("решил") || block.includes("нужно") || block.includes("буду");
+          const isQuestion = block.includes("?");
+          const isConclusion = block.startsWith("✓") || block.startsWith("Итого") || block.startsWith("Вывод") || block.startsWith("Результат");
+          
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.5) }}
+              className={cn(
+                "text-[12px] leading-relaxed px-3 py-2.5 rounded-xl border-l-2",
+                isConclusion
+                  ? "bg-green-50 dark:bg-green-950/30 border-green-400 text-green-800 dark:text-green-300"
+                  : isAction
+                    ? "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-400 text-indigo-800 dark:text-indigo-300"
+                    : isQuestion
+                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-400 text-amber-800 dark:text-amber-300"
+                      : "bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300",
+                isLast && isRunning && "ring-1 ring-purple-200 dark:ring-purple-800"
+              )}
+            >
+              {block}
+              {isLast && isRunning && (
+                <span className="inline-block ml-1 w-1.5 h-4 bg-purple-400 animate-pulse rounded-sm" />
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Auto-scroll indicator */}
+      {!autoScroll && (
+        <button
+          onClick={() => {
+            setAutoScroll(true);
+            if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+          }}
+          className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600 text-white text-[11px] font-medium shadow-lg hover:bg-purple-700 transition-colors"
+        >
+          <ChevronDown size={12} />
+          Новые мысли
+        </button>
+      )}
+    </div>
+  );
+}
+
 
 // ─── Live Tab ────────────────────────────────────────────────────────────────
 
@@ -242,50 +556,39 @@ function LiveTab({ plan, completedSteps = 0, activeStepTitle, totalSteps, isRunn
   completedSteps?: number;
   activeStepTitle?: string;
   totalSteps?: number;
-  isRunning?: boolean;
-  currentTool?: string | null;
-  steps?: Step[];
+  isRunning: boolean;
+  currentTool?: string;
+  steps?: any[];
   chatStatus?: string;
 }) {
+  const effectiveLog = steps || [];
   const hasPlan = plan && plan.length > 0;
-  const [activityLog, setActivityLog] = useState<Array<{ tool: string; time: string }>>([]);
-  const [wasRunning, setWasRunning] = useState(false);
+  const isAgentActive = isRunning || chatStatus === "working";
 
-  // Track tool changes in activity log
-  useEffect(() => {
-    if (currentTool) {
-      setActivityLog(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.tool === currentTool) return prev;
-        const entry = { tool: currentTool, time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) };
-        return [...prev.slice(-29), entry]; // keep last 30
-      });
-    }
-  }, [currentTool]);
+  const getToolInfo = (tool: string) => {
+    const map: Record<string, { icon: string; label: string; color: string }> = {
+      browser_navigate: { icon: "🌐", label: "Браузер", color: "text-blue-600" },
+      browser_click: { icon: "👆", label: "Нажатие", color: "text-blue-600" },
+      browser_input: { icon: "⌨️", label: "Ввод текста", color: "text-blue-600" },
+      browser_scroll: { icon: "📜", label: "Прокрутка", color: "text-blue-600" },
+      browser_view: { icon: "👁️", label: "Просмотр", color: "text-blue-600" },
+      browser_find_keyword: { icon: "🔍", label: "Поиск", color: "text-blue-600" },
+      browser_save_image: { icon: "📷", label: "Сохранение", color: "text-blue-600" },
+      file_write: { icon: "📝", label: "Запись файла", color: "text-emerald-600" },
+      file_read: { icon: "📄", label: "Чтение файла", color: "text-emerald-600" },
+      file_edit: { icon: "✏️", label: "Редактирование", color: "text-emerald-600" },
+      shell_exec: { icon: "💻", label: "Терминал", color: "text-amber-600" },
+      search: { icon: "🔎", label: "Поиск", color: "text-purple-600" },
+      message: { icon: "💬", label: "Сообщение", color: "text-gray-600" },
+    };
+    return map[tool] || { icon: "⚡", label: tool || "Инструмент", color: "text-gray-600" };
+  };
 
-  // Track running state transitions (clear log only when NEW task starts)
-  useEffect(() => {
-    if (isRunning && !wasRunning) {
-      // New task started — clear previous log
-      setActivityLog([]);
-    }
-    setWasRunning(!!isRunning);
-  }, [isRunning, wasRunning]);
-
-  // Build activity log from steps if local log is empty but steps exist
-  const effectiveLog = activityLog.length > 0 ? activityLog : (steps || []).map(s => ({
-    tool: s.tool || s.title || "unknown",
-    time: s.startTime ? new Date(s.startTime).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "",
-  }));
-
-  // True empty state — no task ever ran in this chat
-  // chatStatus 'working' / 'executing' / 'thinking' means agent is active even if SSE not connected
-  const isAgentActive = isRunning || chatStatus === 'working' || chatStatus === 'executing' || chatStatus === 'thinking' || chatStatus === 'searching';
-  if (!isAgentActive && !hasPlan && effectiveLog.length === 0) {
+  if (!isAgentActive && effectiveLog.length === 0 && !hasPlan) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[200px] p-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center mb-3">
-          <Activity size={20} className="text-indigo-400 dark:text-indigo-500" />
+      <div className="flex flex-col items-center justify-center h-full gap-3 px-6">
+        <div className="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+          <Monitor size={24} className="text-gray-300 dark:text-gray-600" />
         </div>
         <div className="text-sm font-medium text-gray-400 dark:text-gray-500">Задача не запущена</div>
         <div className="text-xs text-gray-300 dark:text-gray-600 mt-1">Отправьте задачу агенту</div>
@@ -296,152 +599,171 @@ function LiveTab({ plan, completedSteps = 0, activeStepTitle, totalSteps, isRunn
   const toolInfo = currentTool ? getToolInfo(currentTool) : null;
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Current action — big prominent card like Manus */}
-      {isAgentActive ? (
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
-            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Агент работает</span>
-            <Loader2 size={12} className="text-indigo-400 animate-spin ml-auto" />
+    <div className="flex flex-col h-full">
+      {/* Header — "ARCANE's Computer" style like Manus */}
+      <div className="shrink-0 px-4 py-3 border-b border-gray-100 dark:border-[#2a2d3a]">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
+            <Monitor size={11} className="text-green-600 dark:text-green-400" />
           </div>
-          {toolInfo && (
-            <motion.div
-              key={currentTool}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-3 mt-3 p-3 rounded-xl bg-white/70 dark:bg-white/5 border border-white/50 dark:border-white/10"
-            >
-              <span className="text-2xl">{toolInfo.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className={cn("text-sm font-semibold", toolInfo.color)}>{toolInfo.label}</div>
-                <div className="text-[10px] text-gray-400 dark:text-gray-500 font-mono mt-0.5">{currentTool}</div>
-              </div>
-            </motion.div>
-          )}
-          {!toolInfo && activeStepTitle && (
-            <div className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium">{activeStepTitle}</div>
-          )}
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Компьютер ARCANE</h3>
+          {isAgentActive && <Loader2 size={12} className="text-gray-400 animate-spin ml-auto" />}
         </div>
-      ) : effectiveLog.length > 0 ? (
-        /* Completed state — show summary card */
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 border border-green-100 dark:border-green-800/50 shadow-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-green-500" />
-            <span className="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-wider">Задача завершена</span>
-            <span className="text-[10px] text-green-500/60 dark:text-green-400/40 font-mono ml-auto">{effectiveLog.length} действий</span>
+        {isAgentActive && toolInfo && (
+          <div className="text-xs text-gray-500 dark:text-gray-400 ml-7">
+            ARCANE использует <span className="font-medium text-gray-700 dark:text-gray-300">{toolInfo.label}</span>
           </div>
-        </div>
-      ) : null}
+        )}
+        {!isAgentActive && effectiveLog.length > 0 && (
+          <div className="flex items-center gap-1.5 ml-7">
+            <CheckCircle2 size={12} className="text-green-500" />
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Задача завершена</span>
+          </div>
+        )}
+      </div>
 
-      {/* Task Progress — plan checklist */}
-      {hasPlan && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Прогресс задачи</span>
-            <span className="text-xs font-mono font-semibold text-gray-700 dark:text-gray-300">
-              {completedSteps} / {plan!.length}
-            </span>
+      {/* Main content — browser-like preview area */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Browser screenshot placeholder */}
+        <div className="p-3">
+          <div className="rounded-xl border border-gray-200 dark:border-[#2a2d3a] overflow-hidden bg-gray-50 dark:bg-[#0d0f1a]">
+            {/* URL bar */}
+            {currentTool && currentTool.startsWith("browser") && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#1a1d2e] border-b border-gray-100 dark:border-[#2a2d3a]">
+                <Globe size={10} className="text-gray-400 shrink-0" />
+                <span className="text-[10px] text-gray-400 font-mono truncate">Браузер агента</span>
+              </div>
+            )}
+            {/* Preview content area */}
+            <div className="aspect-video flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0d0f1a] dark:to-[#1a1d2e]">
+              {isAgentActive ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-[#1a1d2e] border border-gray-200 dark:border-[#2a2d3a] flex items-center justify-center shadow-sm">
+                      <span className="text-2xl">{toolInfo?.icon || "⚡"}</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <Loader2 size={10} className="text-white animate-spin" />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs font-medium text-gray-600 dark:text-gray-300">{toolInfo?.label || "Работает"}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">{currentTool}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <CheckCircle2 size={32} className="text-green-400" />
+                  <span className="text-xs text-gray-400">Завершено</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5">
+        </div>
+
+        {/* Task Progress — plan checklist */}
+        {hasPlan && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Прогресс</span>
+              <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                {completedSteps} / {plan!.length}
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1 mb-3">
+              <motion.div
+                className="bg-blue-500 h-1 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: plan!.length > 0 ? `${(completedSteps / plan!.length) * 100}%` : "0%" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              />
+            </div>
+            <div className="space-y-0.5">
+              {plan!.map((item, i) => {
+                const done = i < completedSteps;
+                const running = i === completedSteps && isAgentActive;
+                return (
+                  <div key={i} className={cn(
+                    "flex items-start gap-2 text-xs px-2 py-1.5 rounded-lg",
+                    running ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                  )}>
+                    {done ? (
+                      <CheckCircle2 size={13} className="text-green-500 shrink-0 mt-0.5" />
+                    ) : running ? (
+                      <Loader2 size={13} className="text-blue-500 animate-spin shrink-0 mt-0.5" />
+                    ) : (
+                      <Circle size={13} className="text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" />
+                    )}
+                    <span className={cn(
+                      done ? "text-gray-400 line-through" : running ? "text-gray-800 dark:text-gray-200 font-medium" : "text-gray-400"
+                    )}>
+                      {item}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recent actions log */}
+        {effectiveLog.length > 0 && (
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Лог действий</span>
+            </div>
+            <div className="space-y-0.5">
+              {effectiveLog.slice(-12).map((step: any, i: number) => {
+                const info = getToolInfo(step.tool || "");
+                const isDone = step.status === "success" || step.status === "completed";
+                const isActive = step.status === "running";
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15, delay: i * 0.02 }}
+                    className={cn(
+                      "flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs",
+                      isActive ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                    )}
+                  >
+                    <span className="text-sm shrink-0">{info.icon}</span>
+                    <span className={cn(
+                      "flex-1 truncate",
+                      isActive ? "text-gray-800 dark:text-gray-200 font-medium" : "text-gray-500 dark:text-gray-400"
+                    )}>
+                      {step.title || info.label}
+                    </span>
+                    {isDone && <CheckCircle2 size={11} className="text-green-400 shrink-0" />}
+                    {isActive && <Loader2 size={11} className="text-blue-400 animate-spin shrink-0" />}
+                    {step.timestamp && (
+                      <span className="text-[10px] text-gray-300 dark:text-gray-600 tabular-nums shrink-0">
+                        {new Date(step.timestamp).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom bar — timeline with live indicator like Manus */}
+      {isAgentActive && (
+        <div className="shrink-0 border-t border-gray-100 dark:border-[#2a2d3a] px-4 py-2.5 flex items-center gap-3">
+          <div className="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <motion.div
-              className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: plan!.length > 0 ? `${(completedSteps / plan!.length) * 100}%` : "0%" }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="h-full bg-blue-500 rounded-full"
+              animate={{ width: ["0%", "100%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
           </div>
-          <div className="space-y-1.5 pt-0.5">
-            {plan!.map((item, i) => {
-              const done = i < completedSteps;
-              const running = i === completedSteps && isRunning;
-              return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.2, delay: i * 0.03 }}
-                  className={cn(
-                    "flex items-start gap-2.5 text-xs rounded-lg px-2.5 py-2 transition-colors",
-                    running ? "bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900" : "bg-transparent"
-                  )}
-                >
-                  <span className={cn(
-                    "shrink-0 mt-0.5 transition-colors",
-                    done ? "text-green-500" : running ? "text-indigo-500" : "text-gray-300"
-                  )}>
-                    {done
-                      ? <CheckCircle2 size={13} />
-                      : running
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <Circle size={13} />
-                    }
-                  </span>
-                  <span className={cn(
-                    "leading-relaxed transition-colors",
-                    done ? "text-gray-400 line-through" : running ? "text-indigo-800 dark:text-indigo-200 font-medium" : "text-gray-500 dark:text-gray-400"
-                  )}>
-                    {item}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Activity log — like Manus right panel */}
-      {effectiveLog.length > 0 && (
-        <div className="space-y-2">
           <div className="flex items-center gap-1.5">
-            <ScrollText size={11} className="text-gray-400" />
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              {isRunning ? "Лог действий" : "История действий"}
-            </span>
-          </div>
-          <div className="space-y-1 max-h-[300px] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-            {effectiveLog.map((entry, i) => {
-              const info = getToolInfo(entry.tool);
-              const isLast = i === effectiveLog.length - 1;
-              const isActive = isRunning && isLast;
-              return (
-                <motion.div
-                  key={`${entry.tool}-${entry.time}-${i}`}
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: isActive ? 1 : isLast ? 0.85 : 0.6, x: 0 }}
-                  className={cn(
-                    "flex items-center gap-2 text-[11px] px-2 py-1.5 rounded-lg transition-colors",
-                    isActive ? "bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-800/40" :
-                    isLast && !isRunning ? "bg-green-50/50 dark:bg-green-950/20" : ""
-                  )}
-                >
-                  <span className="text-sm shrink-0">{info.icon}</span>
-                  <span className={cn(
-                    "flex-1 truncate",
-                    isActive ? "font-medium text-indigo-700 dark:text-indigo-300" :
-                    isLast ? "font-medium text-gray-700 dark:text-gray-300" :
-                    "text-gray-400 dark:text-gray-500"
-                  )}>
-                    {info.label}
-                  </span>
-                  {isActive && <Loader2 size={10} className="text-indigo-400 animate-spin shrink-0" />}
-                  <span className="text-[10px] text-gray-300 dark:text-gray-600 font-mono shrink-0">{entry.time}</span>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Fallback progress */}
-      {isRunning && !hasPlan && effectiveLog.length === 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Прогресс</span>
-          </div>
-          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-1.5 rounded-full animate-pulse" style={{ width: "40%" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-[10px] text-gray-500 font-medium">live</span>
           </div>
         </div>
       )}
@@ -449,7 +771,6 @@ function LiveTab({ plan, completedSteps = 0, activeStepTitle, totalSteps, isRunn
   );
 }
 
-// ─── Budget Warning ─────────────────────────────────────────────────────────
 
 function BudgetWarning() {
   const [dismissed, setDismissed] = useState(false);
@@ -495,10 +816,10 @@ function BudgetWarning() {
 
 function IterationCounter() {
   const iterations = [
-    { n: 1, action: "Проверил сервер", tool: "SSH", ms: 2100, status: "done" as const },
-    { n: 2, action: "Сделал web search", tool: "Browser", ms: 1400, status: "done" as const },
-    { n: 3, action: "Открыл bitrixsetup.php", tool: "Browser", ms: 3200, status: "done" as const },
-    { n: 4, action: "Настраивает БД", tool: "SSH", ms: 0, status: "running" as const },
+    { n: 1, action: "Анализ задачи", tool: "Thinking", ms: 1800, status: "done" as const },
+    { n: 2, action: "Поиск информации", tool: "Search", ms: 1400, status: "done" as const },
+    { n: 3, action: "Генерация контента", tool: "AI", ms: 3200, status: "done" as const },
+    { n: 4, action: "Создание лендинга", tool: "Code", ms: 0, status: "running" as const },
   ];
   return (
     <div className="space-y-2">
@@ -531,8 +852,8 @@ function IterationCounter() {
 
 const BROWSER_PAGES = [
   {
-    url: "http://185.22.xx.xx/bitrix/admin/",
-    title: "Bitrix Admin Panel",
+    url: "https://arcaneai.ru/demo/preview",
+    title: "ARCANE Preview",
     screenshot: null,
     status: "loading" as const,
     html: null,
@@ -558,7 +879,7 @@ const BROWSER_PAGES = [
   },
   {
     url: "https://1c-bitrix.ru/download/cms.php",
-    title: "1С-Битрикс: Скачать CMS",
+    title: "Документация",
     screenshot: null,
     status: "loaded" as const,
     html: `<div style="font-family:sans-serif;padding:20px;background:#fff">
@@ -886,7 +1207,7 @@ function StepRow({ step, index, expanded, active, onToggle }: {
             className="overflow-hidden"
           >
             <div className="px-3 pb-3 space-y-2 border-t border-gray-100 pt-2">
-              <div className="text-xs text-gray-600">{step.summary}</div>
+              <div className="text-xs text-gray-600">{typeof step.summary === "string" ? step.summary : JSON.stringify(step.summary)}</div>
 
               {step.args && (
                 <div>
@@ -895,7 +1216,7 @@ function StepRow({ step, index, expanded, active, onToggle }: {
                     {Object.entries(step.args).map(([k, v]) => (
                       <div key={k}>
                         <span className="text-gray-500">{k}: </span>
-                        <span>{v}</span>
+                        <span>{typeof v === "string" ? v : JSON.stringify(v, null, 2)}</span>
                       </div>
                     ))}
                   </div>
@@ -905,8 +1226,8 @@ function StepRow({ step, index, expanded, active, onToggle }: {
               {step.result && (
                 <div>
                   <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Результат</div>
-                  <div className="text-xs text-gray-700 bg-green-50 border border-green-100 rounded-md p-2">
-                    {step.result}
+                  <div className="text-xs text-gray-700 bg-green-50 border border-green-100 rounded-md p-2 whitespace-pre-wrap break-all">
+                    {typeof step.result === "string" ? step.result : JSON.stringify(step.result, null, 2)}
                   </div>
                 </div>
               )}

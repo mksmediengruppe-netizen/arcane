@@ -4,7 +4,8 @@
 
 import { cn } from "@/lib/utils";
 import type { Message, Step, ViewerArtifact, AttachmentFile } from "@/lib/mockData";
-import { StepChip } from "./StepChip";
+import { CollapsibleSteps } from "./CollapsibleSteps";
+import { TaskProgress } from "./TaskProgress";
 import { MarkdownContent } from "./MarkdownContent";
 import {
   Bot, User, FileText, FileCode, Image as ImageIcon, Download,
@@ -25,6 +26,8 @@ interface ChatMessageProps {
   isCompleted?: boolean;
   onEdit?: (messageId: string, newContent: string) => void;
   onArtifactOpen?: (artifact: ViewerArtifact) => void;
+  planCompleted?: number;
+  planActiveIndex?: number;
 }
 
 const ARTIFACT_ICONS: Record<string, React.ReactNode> = {
@@ -238,9 +241,9 @@ function StarRating() {
 }
 
 const FOLLOW_UPS = [
-  "Настроить SSL сертификат через Let's Encrypt",
-  "Создать резервную копию базы данных",
-  "Настроить автообновление Bitrix",
+  "Создать лендинг для нового продукта",
+  "Провести SEO аудит сайта",
+  "Настроить CI/CD пайплайн",
   "Оптимизировать производительность сервера",
 ];
 
@@ -388,60 +391,8 @@ function PlanCard({ plan }: { plan: string[] }) {
   );
 }
 
-// ─── Collapsible Steps ────────────────────────────────────────────────────────
 
-function CollapsibleSteps({
-  steps, activeStep, onStepClick
-}: {
-  steps: Step[];
-  activeStep?: string;
-  onStepClick: (step: Step) => void;
-}) {
-  const [collapsed, setCollapsed] = useState(steps.length > 4);
-
-  const visibleSteps = collapsed ? steps.slice(0, 3) : steps;
-  const hiddenCount = steps.length - 3;
-
-  return (
-    <div className="mt-2">
-      <div className="flex flex-wrap gap-1.5">
-        <AnimatePresence initial={false}>
-          {visibleSteps.map((step, i) => (
-            <motion.div
-              key={step.id}
-              initial={{ opacity: 0, scale: 0.8, y: 6 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.22, ease: "easeOut", delay: i * 0.03 }}
-            >
-              <StepChip step={step} active={activeStep === step.id} onClick={onStepClick} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-      {steps.length > 4 && (
-        <button
-          onClick={() => setCollapsed(v => !v)}
-          className="mt-1.5 flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          {collapsed ? (
-            <>
-              <ChevronRight size={11} />
-              Ещё {hiddenCount} шагов
-            </>
-          ) : (
-            <>
-              <ChevronDown size={11} />
-              Свернуть
-            </>
-          )}
-        </button>
-      )}
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Main Componentent ───────────────────────────────────────────────────────────
 
 
 // ─── PHASE-6: Attachment File Cards ─────────────────────────────────────────
@@ -536,7 +487,7 @@ function AttachmentCards({ attachments }: { attachments: AttachmentFile[] }) {
   );
 }
 
-export function ChatMessage({ message, activeStep, onStepClick, isLast, isCompleted, onEdit, onArtifactOpen }: ChatMessageProps) {
+export function ChatMessage({ message, activeStep, onStepClick, isLast, isCompleted, onEdit, onArtifactOpen, planCompleted, planActiveIndex }: ChatMessageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
@@ -667,7 +618,7 @@ export function ChatMessage({ message, activeStep, onStepClick, isLast, isComple
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.08 }}
-            className="bg-white dark:bg-[#1a1d2e] border border-[#E8E6E1] dark:border-[#2a2d3a] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm"
+            className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed"
           >
             <MarkdownContent content={message.content} />
           </motion.div>
@@ -678,9 +629,13 @@ export function ChatMessage({ message, activeStep, onStepClick, isLast, isComple
           <CurrentToolIndicator tool={message.currentTool} />
         )}
 
-        {/* Plan card (Manus-style) */}
+        {/* Task Progress card (Manus-style) */}
         {message.plan && message.plan.length > 0 && (
-          <PlanCard plan={message.plan} />
+          <TaskProgress
+            plan={message.plan}
+            completedCount={planCompleted ?? (message.steps ? message.steps.filter(s => s.status === "success").length : 0)}
+            activeIndex={planActiveIndex ?? (message.steps ? message.steps.findIndex(s => s.status === "running") : undefined)}
+          />
         )}
 
         {/* Collapsible steps */}

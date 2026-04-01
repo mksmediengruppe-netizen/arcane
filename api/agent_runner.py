@@ -499,6 +499,15 @@ async def _run_agent(
         _cancel_flags.pop(chat_id, None)
         # FIX: Clean up agent instance to prevent stale context on next task
         _agent_instances.pop(chat_id, None)
+        # FIX-GUARANTEED: Always update in-memory status to idle when task ends
+        try:
+            from api.chat_store import get_chat as _get_chat_fn, update_chat as _final_update
+            _chat_data = _get_chat_fn(chat_id)
+            if _chat_data and _chat_data.get("status") == "working":
+                await _final_update(chat_id, status="idle")
+                logger.info(f"FINALLY-FIX: Set chat {chat_id} status to idle")
+        except Exception as _fe:
+            logger.warning(f"FINALLY-FIX failed: {_fe}")
 
 
 async def _resume_agent(chat_id: str, agent, user_response: str) -> None:
@@ -526,6 +535,15 @@ async def _resume_agent(chat_id: str, agent, user_response: str) -> None:
         _cancel_flags.pop(chat_id, None)
         # FIX: Clean up agent instance to prevent stale context on next task
         _agent_instances.pop(chat_id, None)
+        # FIX-GUARANTEED: Always update in-memory status to idle when task ends
+        try:
+            from api.chat_store import get_chat as _get_chat_fn2, update_chat as _final_update2
+            _chat_data2 = _get_chat_fn2(chat_id)
+            if _chat_data2 and _chat_data2.get("status") == "working":
+                await _final_update2(chat_id, status="idle")
+                logger.info(f"FINALLY-FIX-RESUME: Set chat {chat_id} status to idle")
+        except Exception as _fe2:
+            logger.warning(f"FINALLY-FIX-RESUME failed: {_fe2}")
 
 
 async def _store_result(chat_id: str, user_id: str, result: dict, emitter) -> None:
@@ -575,14 +593,31 @@ async def _store_result(chat_id: str, user_id: str, result: dict, emitter) -> No
             artifacts=artifacts,
         )
 
-    # Persist steps to in-memory chat store for frontend retrieval
+    # Persist steps AND status/cost to in-memory chat store for frontend retrieval
+    # FIX: Also update status and total_cost in memory so GET /api/chats/{id} returns correct data
+    # even when SSE client is disconnected (e.g. API-triggered tasks)
     try:
-        from api.chat_store import update_chat as _update_chat
+        from api.chat_store import update_chat as _update_chat, add_message as _add_message
         steps = emitter.get_steps() if hasattr(emitter, "get_steps") else []
+        update_fields = {
+            "status": "idle" if status == "completed" else status,
+            "total_cost": cost,
+        }
         if steps:
-            await _update_chat(chat_id, steps=steps)
+            update_fields["steps"] = steps
+        await _update_chat(chat_id, **update_fields)
+        logger.info(f"In-memory store updated for {chat_id}: status={update_fields['status']}, cost={cost}")
+        # FIX: Also store assistant result message in memory if not already there
+        # This ensures GET /api/chats/{id} returns the result even without SSE
+        summary_text = result.get("summary", f"Task completed in {iterations} iterations")
+        if summary_text:
+            try:
+                await _add_message(chat_id, role="assistant", content=summary_text)
+                logger.info(f"Assistant message stored for {chat_id}")
+            except Exception as msg_err:
+                logger.warning(f"Failed to store assistant message: {msg_err}")
     except Exception as e:
-        logger.warning(f"Failed to store steps: {e}")
+        logger.warning(f"Failed to store steps/status: {e}")
     # Try to persist to database
     try:
         await _persist_to_db(chat_id, user_id, result)

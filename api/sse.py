@@ -158,7 +158,7 @@ class SSEEmitter:
 
         step_data = {
             "step_id": self._current_step_id,
-            "title": title_map.get(tool_name, tool_name),
+            "title": params.get("brief") or title_map.get(tool_name, tool_name),
             "tool": tool_name,
             "params": safe_params,
             "status": "running",
@@ -189,7 +189,7 @@ class SSEEmitter:
         _title_map = TOOL_TITLE_MAP
         await emit_to_chat(self._chat_id, "step_update", {
             "step_id": step_id,
-            "title": _title_map.get(tool_name, tool_name),
+            "title": next((s["title"] for s in self._steps if s.get("step_id") == step_id), _title_map.get(tool_name, tool_name)),
             "tool": tool_name,
             "status": final_status,
             "result": result_str,
@@ -313,7 +313,7 @@ async def stream_chat_events(chat_id: str, request: Request):
     user_id = _require_user_id(request)
     chat = get_chat(chat_id)
     if chat:
-        _check_chat_ownership(chat, user_id)
+        _check_chat_ownership(chat, user_id, request)
 
     queue = get_chat_queue(chat_id)
 

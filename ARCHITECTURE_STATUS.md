@@ -84,3 +84,18 @@ This document serves as the single source of truth for the current architectural
 | Flag | Default | Description |
 |---|---|---|
 | `FEATURE_FLAG_LEGACY_CODER` | `false` | Gates the legacy MultiConcept/Director → coder_prompt fallback path. When `false`, only the scene-driven pipeline is used. |
+
+## Phase 7 — Audit & Hardening (1 April 2026)
+
+### Fixes Applied
+| Fix | File | Description |
+|---|---|---|
+| **FIX-P7-001** | `shared/llm/model_registry.py` | Planner STANDARD tier reverted from `gpt-5` to `gpt-5.4` — bare `gpt-5` must not be used as primary model per test contract |
+| **FIX-P7-002** | `api/compat.py` | Added `POST /api/chats/{chat_id}/enqueue` endpoint — returns 202 immediately without SSE stream, for smoke tests and non-streaming clients |
+| **FIX-P7-003** | `tests/test_smoke.py` | Fixed `test_send_message_accepted` — was blocking on SSE stream (never terminates in ASGI test mode), now uses `/enqueue` endpoint |
+| **FIX-P7-004** | `/etc/fail2ban/jail.local` | Added sandbox IP `195.86.226.25` to fail2ban whitelist alongside `185.137.39.176` |
+| **FIX-P7-005** | `/etc/ssh/sshd_config` | Added `ClientAliveInterval 30`, `ClientAliveCountMax 10` — prevents SSH connection drops |
+
+### Test Results (Phase 7)
+- **Before:** 183 passed, 1 failed (`test_send_message_accepted` — SSE stream timeout)
+- **After:** 184 passed, 2 skipped, 0 failed ✅

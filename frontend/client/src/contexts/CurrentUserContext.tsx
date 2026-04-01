@@ -101,6 +101,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
       // api.auth.me() returns { user: {...} }, extract the user object
       const userObj = (data as any).user || data;
       setCurrentUser(mapApiUser(userObj));
+      try { localStorage.setItem("arcane_user", JSON.stringify(mapApiUser(userObj))); } catch {}
     } catch {
       setCurrentUser(null);
     }
@@ -117,6 +118,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
     const data: any = await api.auth.login(email, password);
     if (data.user) {
       setCurrentUser(mapApiUser(data.user));
+      try { localStorage.setItem("arcane_user", JSON.stringify(mapApiUser(data.user))); } catch {}
     } else {
       throw new Error("Неверный ответ сервера");
     }
@@ -129,6 +131,7 @@ export function CurrentUserProvider({ children }: { children: ReactNode }) {
       // ignore
     }
     clearStoredToken();
+    try { localStorage.removeItem("arcane_user"); } catch {}
     setCurrentUser(null);
   }, []);
 

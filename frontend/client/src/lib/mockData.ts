@@ -131,7 +131,7 @@ export const CHATS: Chat[] = [
   {
     id: "c1",
     projectId: "p1",
-    title: "Установка Bitrix на сервер",
+    title: "Создание лендинга",
     mode: "premium",
     status: "executing",
     cost: 1.24,
@@ -363,7 +363,7 @@ export const ADMIN_USERS = [
 ];
 
 export const ADMIN_TASKS = [
-  { id: "t1", title: "Установка Bitrix на сервер", user: "Алексей Петров", status: "executing", cost: 1.24, duration: "4m 12s", model: "GPT-4o + Claude" },
+  { id: "t1", title: "Создание лендинга", user: "Алексей Петров", status: "executing", cost: 1.24, duration: "4m 12s", model: "GPT-4o + Claude" },
   { id: "t2", title: "Настройка SSL сертификата", user: "Мария Сидорова", status: "completed", cost: 0.38, duration: "2m 45s", model: "GPT-4o" },
   { id: "t3", title: "Миграция WordPress", user: "Дмитрий Козлов", status: "thinking", cost: 0.67, duration: "6m 30s", model: "GPT-4o + Claude" },
   { id: "t4", title: "SEO аудит сайта", user: "Анна Новикова", status: "failed", cost: 0.12, duration: "1m 20s", model: "GPT-4o mini" },

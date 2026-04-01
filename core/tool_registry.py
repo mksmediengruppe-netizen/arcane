@@ -75,6 +75,7 @@ TOOLS: list[dict] = [
         "- Use to create directories, set permissions, manage archives\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("command", "string", "The shell command to execute"),
         _param("timeout", "integer", "Timeout in seconds (default 30)", required=False),
         _param("working_dir", "string", "Working directory for the command", required=False),
@@ -91,6 +92,7 @@ TOOLS: list[dict] = [
         "- Use when waiting for completion of long-running commands\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("session", "string", "Session identifier", required=False),
     ]),
 
@@ -116,6 +118,7 @@ TOOLS: list[dict] = [
         "- Use for DNS and domain configuration\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("host", "string", "Remote server hostname or IP address"),
         _param("command", "string", "Shell command to execute on the remote server"),
         _param("username", "string", "SSH username (default: root)", required=False),
@@ -143,6 +146,7 @@ TOOLS: list[dict] = [
         "- Use to re-read files after context compression\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("path", "string", "Absolute path to the file"),
         _param("start_line", "integer", "Start line number (1-indexed)", required=False),
         _param("end_line", "integer", "End line number (inclusive, -1 for end)", required=False),
@@ -166,6 +170,7 @@ TOOLS: list[dict] = [
         "- Use to create complete project files\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("path", "string", "Absolute path to the file"),
         _param("content", "string", "Full content to write to the file"),
     ]),
@@ -185,6 +190,7 @@ TOOLS: list[dict] = [
         "- Use to patch files without rewriting them entirely\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("path", "string", "Absolute path to the file"),
         ("edits", {
             "type": "array",
@@ -213,6 +219,7 @@ TOOLS: list[dict] = [
         "- Use to build up long files in segments\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("path", "string", "Absolute path to the file"),
         _param("content", "string", "Content to append"),
     ]),
@@ -230,6 +237,7 @@ TOOLS: list[dict] = [
         "- Use to verify visual output of generated websites\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("path", "string", "Absolute path to the file"),
         _param("page", "integer", "Page number for PDFs", required=False),
     ]),
@@ -255,6 +263,7 @@ TOOLS: list[dict] = [
         "- Use to verify deployed websites are working\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("url", "string", "The URL to navigate to (include https:// or file://)"),
         _param("intent", "string", "Purpose: navigational, informational, or transactional", required=False),
         _param("focus", "string", "Specific topic to focus on when reading the page", required=False),
@@ -287,6 +296,7 @@ TOOLS: list[dict] = [
         "- Use to trigger page interactions and form submissions\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("index", "integer", "Index number of the element to click", required=False),
         _param("coordinate_x", "number", "X coordinate to click", required=False),
         _param("coordinate_y", "number", "Y coordinate to click", required=False),
@@ -305,6 +315,7 @@ TOOLS: list[dict] = [
         "- Use to update existing input values\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("text", "string", "Text to input"),
         _param("index", "integer", "Index of the input element", required=False),
         _param("coordinate_x", "number", "X coordinate of the input", required=False),
@@ -326,6 +337,7 @@ TOOLS: list[dict] = [
         "- Use for pages with rich visual elements that need scrolling\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("direction", "string", "Direction: up, down, left, right"),
         _param("target", "string", "Target: page or container", required=False),
         _param("to_end", "boolean", "Scroll to the very end", required=False),
@@ -338,6 +350,7 @@ TOOLS: list[dict] = [
         "- Use the dropdown element index and option index (0-based)\n"
         "</instructions>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("index", "integer", "Index of the dropdown element"),
         _param("option_index", "integer", "Index of the option to select (0-based)"),
     ]),
@@ -353,6 +366,7 @@ TOOLS: list[dict] = [
         "- Use to verify presence of certain keywords or elements\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("keyword", "string", "Text to search for"),
     ]),
 
@@ -369,6 +383,7 @@ TOOLS: list[dict] = [
         "- Use to save design references and inspiration images\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("coordinate_x", "number", "X coordinate of the image"),
         _param("coordinate_y", "number", "Y coordinate of the image"),
         _param("save_dir", "string", "Directory to save the image"),
@@ -382,6 +397,7 @@ TOOLS: list[dict] = [
         "- For combinations use + separator: Control+C, Shift+Tab, Control+Enter\n"
         "</instructions>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("key", "string", "Key name (e.g., Enter, Tab, Control+C)"),
     ]),
 
@@ -392,6 +408,7 @@ TOOLS: list[dict] = [
         "- Target file input elements using their index numbers\n"
         "</instructions>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("index", "integer", "Index of the file input element"),
         _param("path", "string", "Absolute path to the file to upload"),
     ]),
@@ -409,6 +426,7 @@ TOOLS: list[dict] = [
         "- Use to manipulate DOM when other browser tools are insufficient\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("javascript", "string", "JavaScript code to execute"),
     ]),
 
@@ -435,6 +453,7 @@ TOOLS: list[dict] = [
         "- Use 'data' type for datasets and structured data sources\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         ("queries", {
             "type": "array",
             "description": "Up to 3 search query variants (same intent, different wording)",
@@ -460,6 +479,7 @@ TOOLS: list[dict] = [
         "- Use to discover project structure\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("pattern", "string", "Glob pattern (e.g., /root/workspace/**/*.py)"),
     ]),
 
@@ -476,6 +496,7 @@ TOOLS: list[dict] = [
         "- Use to understand code structure by searching for class/function definitions\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("pattern", "string", "Regex pattern to search for"),
         _param("scope", "string", "Glob pattern defining which files to search"),
         _param("context_lines", "integer", "Lines of context around matches", required=False),
@@ -504,6 +525,7 @@ TOOLS: list[dict] = [
         "- Use 'result' to deliver final work with files, links, and summary\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("text", "string", "Message text"),
         _param("type", "string", "Message type: info (progress), ask (blocking question), result (final delivery)"),
         ("attachments", {
@@ -534,6 +556,7 @@ TOOLS: list[dict] = [
         "- Use to track progress on long-running operations\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("action", "string", "Action: update (create/revise plan) or advance (move to next phase)"),
         _param("goal", "string", "Overall goal of the task", required=False),
         ("phases", {
@@ -573,6 +596,7 @@ TOOLS: list[dict] = [
         "- Use when user provides a domain and server for deployment\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("source_dir", "string", "Local directory with files to deploy"),
         _param("domain", "string", "Domain name for the site"),
         _param("server_host", "string", "VPS IP or hostname", required=False),
@@ -597,6 +621,7 @@ TOOLS: list[dict] = [
         "- Use for periodic monitoring or maintenance tasks\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("name", "string", "Task name"),
         _param("prompt", "string", "What to do at execution time"),
         _param("type", "string", "Schedule type: cron or interval"),
@@ -625,6 +650,7 @@ TOOLS: list[dict] = [
         "- Use to save any fact you'll need in future messages\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("key", "string", "Short descriptive key (e.g., 'server_ip', 'db_password', 'nginx_config_path')"),
         _param("value", "string", "The value to remember"),
     ]),
@@ -643,6 +669,7 @@ TOOLS: list[dict] = [
         "- Use as the final step before sending result to user\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("project_dir", "string", "Absolute path to the project directory to archive"),
         _param("project_name", "string", "Human-readable project name for the archive filename"),
         _param("include_readme", "boolean", "Include auto-generated README.md (default: true)", required=False),
@@ -667,6 +694,7 @@ TOOLS: list[dict] = [
         "- Use before writing HTML — have photo URLs ready\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("query", "string", "Search query (e.g., 'luxury barbershop interior', 'gourmet plating')"),
         _param("per_page", "integer", "Number of results to return (default 5)", required=False),
     ]),
@@ -685,6 +713,7 @@ TOOLS: list[dict] = [
         "- Use for logos, mascots, and unique visual elements\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("prompt", "string", "Detailed description of the image to generate"),
         _param("style", "string", "Style: photorealistic, illustration, flat, 3d, watercolor", required=False),
         _param("size", "string", "Size: 1024x1024, 1792x1024, 1024x1792", required=False),
@@ -708,6 +737,7 @@ TOOLS: list[dict] = [
         "- Use iteratively: generate → judge → fix → judge again\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("screenshot_path", "string", "Path to screenshot image", required=False),
         _param("html_path", "string", "Path to HTML file to evaluate", required=False),
         _param("context", "string", "Context about what was requested", required=False),
@@ -728,6 +758,7 @@ TOOLS: list[dict] = [
         "- Use to get a proven layout that scores well with design_judge\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("template_type", "string", "Blueprint type: dark_luxury, warm_editorial, clean_tech, bold_energy, soft_wellness, japandi_minimal, neobrutalist, or 'list' to see all"),
     ]),
 
@@ -746,6 +777,7 @@ TOOLS: list[dict] = [
         "- Use to understand current design trends for the target industry\n"
         "</recommended_usage>",
     [
+        _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("query", "string", "Natural language description of the desired design (e.g., 'dark luxury hotel landing page')"),
         _param("style", "string", "Filter by style: luxury, editorial, tech-modern, bold, wellness, minimal, brutalist, fashion, cinematic, hospitality", required=False),
         _param("mood", "string", "Filter by mood: elegant, bold, calm, energetic, sophisticated, playful, professional", required=False),
@@ -772,6 +804,7 @@ TOOLS: list[dict] = [
         "- Use for creating professional proposals and documentation\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("input_path", "string", "Absolute path to the Markdown (.md) file to convert"),
             _param("output_path", "string", "Absolute path for the output PDF file", False),
         ]),
@@ -791,6 +824,7 @@ TOOLS: list[dict] = [
         "- Use for creating structured data that user can edit in Excel\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("output_path", "string", "Absolute path for the output .xlsx file"),
             ("sheets", {"type": "array", "description": "Array of sheet objects: {name, headers: [...], rows: [[...], ...]}", "items": {"type": "object"}}, True),
             _param("title", "string", "Workbook title for metadata", False),
@@ -813,6 +847,7 @@ TOOLS: list[dict] = [
         "- Use before modifying or converting documents\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("file_path", "string", "Absolute path to the document file"),
             _param("max_chars", "integer", "Maximum characters to extract. Default: 50000", False),
         ]),
@@ -832,6 +867,7 @@ TOOLS: list[dict] = [
         "- Use for educational or training materials\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("output_path", "string", "Absolute path for the output .pptx file"),
             ("slides", {"type": "array", "description": "Array of slide objects: {type, title, body, bullets, image}", "items": {"type": "object"}}, True),
             _param("title", "string", "Presentation title", False),
@@ -857,6 +893,7 @@ TOOLS: list[dict] = [
         "- Use to add watermarks or convert formats\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("input_path", "string", "Absolute path to the input image"),
             _param("action", "string", "Action: resize, crop, rotate, watermark, convert, compress, blur, grayscale"),
             _param("output_path", "string", "Output path. If omitted, overwrites input", False),
@@ -878,6 +915,7 @@ TOOLS: list[dict] = [
         "- Use for system design documentation\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("input_path", "string", "Path to diagram source file", False),
             _param("output_path", "string", "Output PNG path", False),
             _param("code", "string", "Diagram source code (if no input_path)", False),
@@ -899,6 +937,7 @@ TOOLS: list[dict] = [
         "- Use in reports and presentations\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("output_path", "string", "Output PNG path"),
             _param("chart_type", "string", "Chart type: bar, line, pie, horizontal_bar, scatter"),
             _param("title", "string", "Chart title"),
@@ -922,6 +961,7 @@ TOOLS: list[dict] = [
         "- Use for Y/N questions in installers\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("session", "string", "Shell session identifier"),
             _param("input", "string", "Text to send to stdin"),
         ]),
@@ -939,6 +979,7 @@ TOOLS: list[dict] = [
         "- Use when shell_exec returns 'still running'\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("session", "string", "Shell session identifier"),
             _param("timeout", "integer", "Max seconds to wait. Default: 30", False),
         ]),
@@ -954,6 +995,7 @@ TOOLS: list[dict] = [
         "- Use to clean up dead processes\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("session", "string", "Shell session identifier"),
         ]),
 
@@ -972,6 +1014,7 @@ TOOLS: list[dict] = [
         "- Use for CMS setup wizards\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             ("fields", {"type": "array", "description": "Array of {index, value} objects", "items": {"type": "object"}}, True),
         ]),
 
@@ -986,6 +1029,7 @@ TOOLS: list[dict] = [
         "- Use for revealing dropdown menus\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("x", "integer", "Horizontal coordinate"),
             _param("y", "integer", "Vertical coordinate"),
         ]),
@@ -1017,6 +1061,7 @@ TOOLS: list[dict] = [
         "- Use for webhook testing\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("port", "integer", "Local port number to expose"),
         ]),
 
@@ -1033,6 +1078,7 @@ TOOLS: list[dict] = [
         "- Use for meeting recordings, interviews\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("file_path", "string", "Path to audio/video file"),
             _param("language", "string", "Language code (ru, en, etc.)", False),
         ]),
@@ -1049,6 +1095,7 @@ TOOLS: list[dict] = [
         "- Use for accessibility\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("text", "string", "Text to convert to speech"),
             _param("output_path", "string", "Output MP3 path"),
             _param("voice", "string", "Voice name. Default: alloy", False),
@@ -1069,6 +1116,7 @@ TOOLS: list[dict] = [
         "- Use when processing 5+ similar items\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             ("items", {"type": "array", "description": "Array of items to process", "items": {"type": "object"}}, True),
             _param("action", "string", "Tool name to execute for each item"),
             _param("max_concurrent", "integer", "Max parallel executions. Default: 5", False),
@@ -1087,6 +1135,7 @@ TOOLS: list[dict] = [
         "- Use when encountering unfamiliar technology\n"
         "</recommended_usage>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("name", "string", "Name of the skill to read (e.g., 'landing-page', 'n8n', 'telegram-bot')"),
         ]),
 
@@ -1112,6 +1161,7 @@ TOOLS: list[dict] = [
         "- fastapi: FastAPI + SQLAlchemy + Alembic backend\n"
         "</scaffold_types>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("name", "string", "Project directory name (e.g., 'my-app')"),
             _param("scaffold", "string", "Scaffold type: react-vite, static, or fastapi"),
             _param("description", "string", "Brief project description", False),
@@ -1134,6 +1184,7 @@ TOOLS: list[dict] = [
         "- Use specific type for better results\n"
         "</instructions>",
         [
+            _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
             _param("query", "string", "Search query (up to 3 keywords or phrases)"),
             _param("type", "string", "Search type: info, image, api, news, data, or research. Default: info", False),
         ]),

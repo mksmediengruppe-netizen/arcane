@@ -187,14 +187,16 @@ class TestSendMessage:
 
     async def test_send_message_accepted(self, auth_client: httpx.AsyncClient):
         chat_id = await _create_chat(auth_client, "Send Test")
+        # Use /enqueue (returns 202 immediately) instead of /send (SSE stream).
+        # The /send endpoint is an SSE stream that never terminates in ASGI test mode.
         resp = await auth_client.post(
-            f"/api/chats/{chat_id}/send",
+            f"/api/chats/{chat_id}/enqueue",
             json={"content": "Привет, это smoke test!", "role": "user"},
         )
         assert resp.status_code in (200, 202), (
-            f"Send failed: {resp.status_code} {resp.text}"
+            f"Enqueue failed: {resp.status_code} {resp.text}"
         )
-        print(f"  ✓ Sent message to chat: {chat_id[:8]}...")
+        print(f"  ✓ Enqueued message to chat: {chat_id[:8]}...")
 
 
 # ════════════════════════════════════════════════════════════════════════════

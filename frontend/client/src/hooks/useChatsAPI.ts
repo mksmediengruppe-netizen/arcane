@@ -154,7 +154,19 @@ export function useChatsAPI() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data: any = await api.chats.list();
       const uiChats = (data.chats || []).map(apiChatToUiChat);
-      setChats(uiChats);
+      // Merge: preserve completed/failed status from SSE to avoid admin polling overwrite
+      setChats((prev) => {
+        if (prev.length === 0) return uiChats;
+        const prevMap = new Map(prev.map((c) => [c.id, c]));
+        return uiChats.map((c) => {
+          const existing = prevMap.get(c.id);
+          // Don't overwrite completed/failed status set by SSE with stale backend data
+          if (existing && (existing.status === "completed" || existing.status === "failed") && c.status !== "completed" && c.status !== "failed") {
+            return { ...c, status: existing.status };
+          }
+          return c;
+        });
+      });
       if (uiChats.length > 0) {
         setActiveChat((prev) => prev ?? uiChats[0].id);
       }
@@ -168,6 +180,38 @@ export function useChatsAPI() {
   }, []);
 
   useEffect(() => { loadChats(); }, [loadChats]);
+
+  // ─── Admin polling: refresh chat list every 5s to see API-launched tasks ──
+  useEffect(() => {
+    // Check if user is admin by looking at role in localStorage or cookie
+    const isAdmin = (() => {
+      try {
+        const stored = localStorage.getItem("arcane_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          return parsed.role === "admin";
+        }
+      } catch {}
+      return false;
+    })();
+    if (!isAdmin) return;
+    const pollInterval = setInterval(() => {
+      loadChats();
+    }, 5000);
+    return () => clearInterval(pollInterval);
+  }, [loadChats]);
+
+  
+  // ─── Safety timeout: auto-reset isSending after 120s ──────────────────────
+  useEffect(() => {
+    if (!isSending) return;
+    const timeout = setTimeout(() => {
+      console.warn("Safety timeout: resetting isSending after 120s");
+      setIsSending(false);
+      stopTimer();
+    }, 120000);
+    return () => clearTimeout(timeout);
+  }, [isSending, stopTimer]);
 
   // ─── Load messages for a chat ─────────────────────────────────────────────
   const loadMessages = useCallback(async (chatId: string) => {
@@ -192,13 +236,25 @@ export function useChatsAPI() {
         duration: s.duration || "",
         summary: s.result || "",
         args: s.params,
-        result: s.result,
+        result: s.result !== undefined && s.result !== null ? (typeof s.result === 'string' ? s.result : JSON.stringify(s.result)) : undefined,
       }));
       if (savedSteps.length > 0) {
         setChatMeta((prev) => ({
           ...prev,
           [chatId]: { ...(prev[chatId] || emptyMeta()), steps: savedSteps },
         }));
+        // Also attach steps to the last agent message so they show in chat
+        setMessages((prev) => {
+          const chatMsgs = prev[chatId] || [];
+          if (chatMsgs.length === 0) return prev;
+          // Find the last agent message
+          const lastAgentIdx = [...chatMsgs].map((m, i) => ({ m, i })).reverse().find(({ m }) => m.role === "agent")?.i;
+          if (lastAgentIdx === undefined) return prev;
+          const updated = chatMsgs.map((m, i) =>
+            i === lastAgentIdx ? { ...m, steps: savedSteps } : m
+          );
+          return { ...prev, [chatId]: updated };
+        });
       }
     } catch (err) {
       console.error("Failed to load messages:", err);
@@ -207,10 +263,175 @@ export function useChatsAPI() {
   }, []);
 
   // ─── Select chat ──────────────────────────────────────────────────────────
+  // ─── SSE subscription for admin viewing running tasks ──────────────────
+  const sseRef = useRef<EventSource | null>(null);
+  
+  const subscribeToRunningChat = useCallback((chatId: string) => {
+    // Close previous SSE connection
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+    // Only subscribe if not currently sending (i.e., admin viewing someone else's task)
+    if (isSending) return;
+    
+    const es = api.sse.subscribe(chatId);
+    sseRef.current = es;
+    
+    const agentMsgId = `live_${Date.now()}`;
+    let fullContent = "";
+    let hasAgentMsg = false;
+    
+    es.addEventListener("agent_status", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        const status = data.status || "";
+        if (status === "thinking" || status === "working" || status === "coding" || status === "browsing") {
+          setAgentStatus((prev) => ({ ...prev, [chatId]: "executing" }));
+          setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, status: "executing" } : c)));
+        } else if (status === "idle" || status === "completed") {
+          setAgentStatus((prev) => ({ ...prev, [chatId]: "completed" }));
+          setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, status: "completed" } : c)));
+          es.close();
+          sseRef.current = null;
+          // Reload messages to get final result
+          loadedChats.current.delete(chatId);
+          loadMessages(chatId);
+        }
+      } catch {}
+    });
+    
+    es.addEventListener("step", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        const step = {
+          id: data.step_id || String(Date.now()),
+          title: data.title || data.tool || "Шаг",
+          status: (data.status || "running") as StepStatus,
+          tool: data.tool || "",
+          startTime: new Date().toISOString(),
+          duration: data.duration || "",
+          summary: data.result || data.summary || "",
+          args: data.params || data.args,
+          result: data.result,
+        };
+        setChatMeta((prev) => ({
+          ...prev,
+          [chatId]: {
+            ...(prev[chatId] || emptyMeta()),
+            steps: [...((prev[chatId] || emptyMeta()).steps || []), step],
+            currentTool: data.tool || prev[chatId]?.currentTool || "",
+          },
+        }));
+      } catch {}
+    });
+    
+    es.addEventListener("tool_call", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        setChatMeta((prev) => ({
+          ...prev,
+          [chatId]: {
+            ...(prev[chatId] || emptyMeta()),
+            currentTool: data.tool || "",
+          },
+        }));
+        setAgentStatus((prev) => ({ ...prev, [chatId]: "executing" }));
+      } catch {}
+    });
+    
+    es.addEventListener("text_delta", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        fullContent += data.text || "";
+        if (!hasAgentMsg) {
+          hasAgentMsg = true;
+          setMessages((prev) => ({
+            ...prev,
+            [chatId]: [...(prev[chatId] || []), {
+              id: agentMsgId,
+              role: "agent" as const,
+              content: fullContent,
+              timestamp: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
+              isStreaming: true,
+            }],
+          }));
+        } else {
+          setMessages((prev) => ({
+            ...prev,
+            [chatId]: (prev[chatId] || []).map((m) =>
+              m.id === agentMsgId ? { ...m, content: fullContent } : m
+            ),
+          }));
+        }
+      } catch {}
+    });
+    
+    es.addEventListener("task_complete", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        setAgentStatus((prev) => ({ ...prev, [chatId]: "completed" }));
+        setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, status: "completed" } : c)));
+        es.close();
+        sseRef.current = null;
+        // Reload to get final messages
+        loadedChats.current.delete(chatId);
+        loadMessages(chatId);
+      } catch {}
+    });
+    
+    es.addEventListener("cost_update", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        setChatMeta((prev) => ({
+          ...prev,
+          [chatId]: {
+            ...(prev[chatId] || emptyMeta()),
+            totalCost: data.total_cost || 0,
+          },
+        }));
+        setChats((prev) => prev.map((c) => (c.id === chatId ? { ...c, cost: data.total_cost || 0 } : c)));
+      } catch {}
+    });
+    
+    es.addEventListener("plan_update", (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        setChatMeta((prev) => ({
+          ...prev,
+          [chatId]: {
+            ...(prev[chatId] || emptyMeta()),
+            plan: data.phases || [],
+            planCurrentPhase: data.current_phase_id || 1,
+          },
+        }));
+      } catch {}
+    });
+    
+    es.onerror = () => {
+      es.close();
+      sseRef.current = null;
+    };
+  }, [isSending, loadMessages]);
+  
   const selectChat = useCallback((chatId: string) => {
     setActiveChat(chatId);
     loadMessages(chatId);
-  }, [loadMessages]);
+    // Check if this chat is running (status = working/executing) and subscribe
+    setChats((prev) => {
+      const chat = prev.find((c) => c.id === chatId);
+      if (chat && (chat.status === "working" || chat.status === "executing" || chat.status === "thinking")) {
+        // Initialize meta for live viewing
+        setChatMeta((pm) => ({
+          ...pm,
+          [chatId]: pm[chatId] || { ...emptyMeta(), startedAt: new Date().toISOString() },
+        }));
+        setAgentStatus((pa) => ({ ...pa, [chatId]: "executing" }));
+        subscribeToRunningChat(chatId);
+      }
+      return prev;
+    });
+  }, [loadMessages, subscribeToRunningChat]);
 
   useEffect(() => {
     if (activeChat) loadMessages(activeChat);
@@ -481,7 +702,7 @@ export function useChatsAPI() {
                   duration: event.duration || "",
                   summary: event.summary || "",
                   args: event.args || event.params,
-                  result: event.result,
+                  result: event.result !== undefined && event.result !== null ? (typeof event.result === 'string' ? event.result : JSON.stringify(event.result)) : undefined,
                 };
                 setChatMeta((prev) => {
                   const meta = prev[chatId] || emptyMeta();
@@ -597,6 +818,7 @@ export function useChatsAPI() {
                   prev.map((c) => (c.id === chatId ? { ...c, status: "completed" } : c))
                 );
                 stopTimer();
+                setIsSending(false);
 
               // ── Done ───────────────────────────────────────────────────
               } else if (type === "done") {
@@ -615,6 +837,7 @@ export function useChatsAPI() {
                   prev.map((c) => (c.id === chatId ? { ...c, status: "completed" } : c))
                 );
                 stopTimer();
+                setIsSending(false);
 
               // ── Title ──────────────────────────────────────────────────
               } else if (type === "title") {
@@ -655,7 +878,13 @@ export function useChatsAPI() {
                     prev.map((c) => (c.id === chatId ? { ...c, status: "thinking" } : c))
                   );
                 } else if (status === "idle" || status === "connected") {
-                  // ignore — handled by done/task_complete
+                  // Mark as completed when agent goes idle
+                  setAgentStatus((prev) => ({ ...prev, [chatId]: "completed" }));
+                  setChats((prev) =>
+                    prev.map((c) => (c.id === chatId ? { ...c, status: "completed" } : c))
+                  );
+                  setIsSending(false);
+                  stopTimer();
                 } else if (status === "waiting_user") {
                   setAgentStatus((prev) => ({ ...prev, [chatId]: "idle" }));
                   setChats((prev) =>
@@ -715,20 +944,19 @@ export function useChatsAPI() {
           }
         }
 
-        // If we got content but no explicit done event, mark as completed
-        if (fullContent) {
-          setAgentStatus((prev) => {
-            if (prev[chatId] === "completed" || prev[chatId] === "failed") return prev;
-            return { ...prev, [chatId]: "completed" };
-          });
-          setChats((prev) =>
-            prev.map((c) => {
-              if (c.id !== chatId) return c;
-              if (c.status === "completed" || c.status === "failed") return c;
-              return { ...c, status: "completed" };
-            })
-          );
-        }
+        // Stream ended - always mark as completed
+        setAgentStatus((prev) => {
+          if (prev[chatId] === "completed" || prev[chatId] === "failed") return prev;
+          return { ...prev, [chatId]: "completed" };
+        });
+        setChats((prev) =>
+          prev.map((c) => {
+            if (c.id !== chatId) return c;
+            if (c.status === "completed" || c.status === "failed") return c;
+            return { ...c, status: "completed" };
+          })
+        );
+        setIsSending(false);
         stopTimer();
       } catch (err) {
         console.error("SSE stream error, starting polling fallback:", err);
@@ -813,6 +1041,16 @@ export function useChatsAPI() {
     return formatElapsed(meta.elapsed);
   }, [chatMeta]);
 
+  // Cleanup SSE subscription on unmount
+  useEffect(() => {
+    return () => {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+    };
+  }, []);
+  
   return {
     chats,
     activeChat,

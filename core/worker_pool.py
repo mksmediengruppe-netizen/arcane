@@ -365,11 +365,65 @@ class WorkerPool:
             self._agent_instances[payload.task_id] = agent
 
             result = await agent.run(payload.user_message)
+            
+            # FIX: Emit task_complete to close SSE stream (was missing!)
+            try:
+                _tc_status = result.get("status", "completed")
+                _tc_cost = result.get("total_cost", 0.0)
+                _tc_iters = result.get("iterations", 0)
+                _tc_arts = result.get("artifacts", [])
+                await emitter.task_complete(
+                    summary=f"Task completed in {_tc_iters} iterations (${_tc_cost:.4f})",
+                    artifacts=_tc_arts,
+                )
+            except Exception as _tc_err:
+                logger.warning(f"WORKER-FIX: Failed to emit task_complete: {_tc_err}")
+                # Fallback: emit done directly
+                try:
+                    from api.sse import emit_to_chat
+                    await emit_to_chat(payload.chat_id, "done", {"reason": "task_complete_fallback"})
+                except Exception:
+                    pass
+            
+            # FIX: Store result in in-memory chat store so GET /api/chats/{id} returns correct data
+            try:
+                from api.chat_store import update_chat as _wp_update_chat, add_message as _wp_add_message
+                status = result.get("status", "completed")
+                cost = result.get("total_cost", 0.0)
+                iterations = result.get("iterations", 0)
+                
+                update_fields = {
+                    "status": "idle" if status == "completed" else status,
+                    "total_cost": cost,
+                }
+                steps = emitter.get_steps() if hasattr(emitter, "get_steps") else []
+                if steps:
+                    update_fields["steps"] = steps
+                await _wp_update_chat(payload.chat_id, **update_fields)
+                logger.info(f"WORKER-FIX: Updated chat store for {payload.chat_id}: status={update_fields['status']}, cost={cost}")
+                
+                # Store assistant result message
+                summary_text = result.get("summary", f"Task completed in {iterations} iterations")
+                if summary_text:
+                    try:
+                        await _wp_add_message(payload.chat_id, role="assistant", content=summary_text)
+                    except Exception:
+                        pass
+            except Exception as _store_err:
+                logger.warning(f"WORKER-FIX: Failed to store result: {_store_err}")
+            
             return result
 
         except Exception as e:
             try:
                 await emitter.status("error", str(e))
+            except Exception:
+                pass
+            # FIX: Update chat store with failed status
+            try:
+                from api.chat_store import update_chat as _wp_fail_update
+                await _wp_fail_update(payload.chat_id, status="failed", total_cost=0.0)
+                logger.info(f"WORKER-FIX: Set chat {payload.chat_id} to failed on error: {e}")
             except Exception:
                 pass
             raise

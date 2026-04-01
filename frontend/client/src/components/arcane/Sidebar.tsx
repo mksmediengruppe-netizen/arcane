@@ -651,6 +651,7 @@ function ChatRow({
   }
 
   const STATUS_DOT: Record<string, string> = {
+    working:      "bg-blue-500 animate-pulse",
     executing:    "bg-indigo-500 animate-pulse",
     thinking:     "bg-amber-400 animate-pulse",
     completed:    "bg-green-500",

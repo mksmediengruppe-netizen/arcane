@@ -241,7 +241,7 @@ ROLES: dict[str, ModelRole] = {
         name="planner",
         tiers={
             Tier.FAST: "gpt-5.4-mini",  # DAY0-FIX1: was gpt-5-mini (reasoning)
-            Tier.STANDARD: "gpt-5",       # OPTIMIZED: was gpt-5.4 ($2.50/$15) → gpt-5 ($1.25/$10) = 50% savings
+            Tier.STANDARD: "gpt-5.4",      # FIX: reverted to gpt-5.4 (test requires no bare gpt-5 as primary)
             Tier.GENIUS: "gpt-5.4",
         },
         fallback_chain={

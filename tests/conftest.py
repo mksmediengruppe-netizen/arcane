@@ -36,7 +36,7 @@ def _check_server_available():
     from urllib.parse import urlparse
     parsed = urlparse(_LIVE_URL)
     host = parsed.hostname or "localhost"
-    port = parsed.port or 8900
+    port = parsed.port or 8900  # default port for ARCANE backend
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(2)
     try:

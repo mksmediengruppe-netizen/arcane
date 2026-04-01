@@ -102,14 +102,34 @@ def _require_admin(request: Request) -> str:
     raise HTTPException(403, "Admin access required")
 
 
-def _check_chat_ownership(chat: dict, user_id: str) -> None:
-    """P1-2 FIX: Verify user owns the chat. Raises 403 if not."""
+def _is_admin_user(request_or_user_id) -> bool:
+    """Check if the current request/session belongs to an admin."""
+    # If it's a Request object, check session
+    if hasattr(request_or_user_id, 'cookies'):
+        session_token = request_or_user_id.cookies.get("arcane_session")
+        if session_token and session_token in _sessions:
+            sd = _sessions[session_token]
+            if isinstance(sd, dict) and sd.get("role") == "admin":
+                return True
+        auth_header = request_or_user_id.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token_data = _verify_jwt(auth_header[7:])
+            if token_data and token_data.get("role") == "admin":
+                return True
+    return False
+
+def _check_chat_ownership(chat: dict, user_id: str, request=None) -> None:
+    """P1-2 FIX: Verify user owns the chat. Admin can access any chat."""
     if not user_id:
         raise HTTPException(401, "Authentication required")
     chat_owner = chat.get("user_id", "")
-    # Allow if: chat has no owner (legacy), or user matches, or user is admin
-    if chat_owner and chat_owner != user_id:
-        raise HTTPException(403, "Access denied: you do not own this chat")
+    # Allow if: chat has no owner (legacy), or user matches
+    if not chat_owner or chat_owner == user_id:
+        return
+    # Allow if user is admin
+    if request and _is_admin_user(request):
+        return
+    raise HTTPException(403, "Access denied: you do not own this chat")
 
 
 def _generate_chat_title(content: str) -> str:
@@ -465,9 +485,30 @@ async def register(req: RegisterRequest, response: Response, request: Request):
 
 @router.get("/api/chats")
 async def list_chats(request: Request):
-    """List chats for the current user. S5: uses chat_service."""
+    """List chats for the current user. Admin sees ALL chats."""
     user_id = _require_user_id(request)
     from api.chat_service import list_chats_for_user, get_chat_summary
+    # Admin sees all chats from all users
+    if _is_admin_user(request):
+        from api.chat_store import get_chats as _get_all_chats
+        from api.agent_runner import get_active_agents
+        all_chats = list(_get_all_chats().values())
+        all_chats.sort(key=lambda c: c.get("updated_at", 0), reverse=True)
+        active_agents = get_active_agents()
+        result = []
+        for c in all_chats:
+            summary = get_chat_summary(c)
+            # Add user info for admin
+            owner = c.get("user_id", "")
+            if owner and owner != user_id:
+                summary["owner_id"] = owner
+            # Mark running tasks
+            cid = c.get("id", "")
+            if cid in active_agents:
+                summary["status"] = "working"
+                summary["is_running"] = True
+            result.append(summary)
+        return {"chats": result}
     user_chats = await list_chats_for_user(user_id)
     return {"chats": [get_chat_summary(c) for c in user_chats]}
 
@@ -499,7 +540,7 @@ async def get_chat_endpoint(chat_id: str, request: Request):
     if not chat:
         raise HTTPException(404, "Chat not found")
     user_id = _extract_user_id(request)
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
 
     messages = get_messages(chat_id)
     return {
@@ -510,6 +551,50 @@ async def get_chat_endpoint(chat_id: str, request: Request):
         }
     }
 
+
+
+@router.post("/api/chats/{chat_id}/enqueue", status_code=202)
+async def enqueue_chat_message(chat_id: str, request: Request):
+    """Enqueue a message for processing and return 202 immediately (no SSE stream).
+    Used by smoke tests and clients that handle SSE separately via /send."""
+    from api.rate_limiter import check_rate_limit
+    await check_rate_limit(request, "message")
+    user_id = _require_user_id(request)
+    chat = get_chat(chat_id)
+    if not chat:
+        await store_create_chat(chat_id=chat_id, user_id=user_id)
+        chat = get_chat(chat_id)
+    _check_chat_ownership(chat, user_id, request)
+    body = await request.json()
+    content = body.get("content", body.get("message", ""))
+    model_strategy = body.get("model", body.get("variant", "standard"))
+    options = body.get("options", {})
+    premium_images = options.get("premiumImages", False)
+    design_check = options.get("designCheck", False)
+    premium_review = options.get("premiumReview", False)
+    if model_strategy == "premium":
+        model_strategy = "quality"
+        premium_images = True
+        design_check = True
+        premium_review = True
+    await store_add_message(chat_id, role="user", content=content)
+    chats = _get_chats_dict()
+    if chat_id in chats:
+        title_update = {}
+        current_title = (chats[chat_id].get("title") or "").strip()
+        _default_titles = {"", "New Task", "Новая задача", "new task", "новая задача"}
+        if current_title.lower() in {t.lower() for t in _default_titles}:
+            title_update["title"] = _generate_chat_title(content)
+        await store_update_chat(chat_id, status="working", **title_update)
+    from api.agent_runner import start_agent_for_chat
+    asyncio.create_task(start_agent_for_chat(
+        chat_id, content, user_id=user_id,
+        model_strategy=model_strategy,
+        premium_images=premium_images,
+        design_check=design_check,
+        premium_review=premium_review,
+    ))
+    return {"status": "accepted", "chat_id": chat_id}
 
 @router.post("/api/chats/{chat_id}/message")
 @router.post("/api/chats/{chat_id}/send")
@@ -526,7 +611,7 @@ async def send_chat_message(chat_id: str, request: Request):
         # Auto-create chat for this user if it doesn't exist
         await store_create_chat(chat_id=chat_id, user_id=user_id)
         chat = get_chat(chat_id)
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
 
     body = await request.json()
     content = body.get("content", body.get("message", ""))
@@ -598,6 +683,7 @@ async def send_chat_message(chat_id: str, request: Request):
                     continue
 
                 event_type = event.get("type", "")
+                logger.info(f"SSE-STREAM [{chat_id[:8]}]: event_type={event_type}")
                 data = event.get("data", {})
 
                 if event_type == "agent_status":
@@ -741,7 +827,7 @@ async def get_chat_status(chat_id: str, request: Request):
     chat = get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     messages = get_messages(chat_id)
     # Get last assistant message if any
     last_assistant = None
@@ -766,7 +852,7 @@ async def delete_chat_endpoint(chat_id: str, request: Request):
     if not chat:
         raise HTTPException(404, "Chat not found")
     user_id = _extract_user_id(request)
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     await store_delete_chat(chat_id)
     return {"ok": True}
 
@@ -778,7 +864,7 @@ async def stop_chat_agent(chat_id: str, request: Request):
     if not chat:
         raise HTTPException(404, "Chat not found")
     user_id = _extract_user_id(request)
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     from api.agent_runner import stop_agent_for_chat
     await stop_agent_for_chat(chat_id, user_id=user_id)
     await store_update_chat(chat_id, status="idle")
@@ -792,7 +878,7 @@ async def update_chat_endpoint(chat_id: str, request: Request):
     if not chat:
         raise HTTPException(404, "Chat not found")
     user_id = _extract_user_id(request)
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     body = await request.json()
     updates = {}
     for key in ("title", "variant", "model_used"):
@@ -1052,7 +1138,7 @@ async def list_chat_files(chat_id: str, request: Request):
     chat = get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
 
     chat_workspace = os.path.join(WORKSPACE_DIR, chat_id)
     files = []
@@ -1144,6 +1230,24 @@ async def rate_limit_status(request: Request):
 async def admin_stats(request: Request):
     _require_admin(request)
     return await get_admin_stats()
+@router.get("/api/admin/active-agents")
+async def admin_active_agents(request: Request):
+    """Get currently running agent tasks for admin monitoring."""
+    _require_admin(request)
+    from api.agent_runner import get_active_agents
+    agents = get_active_agents()
+    # Enrich with chat info
+    result = []
+    for chat_id, info in agents.items():
+        chat = get_chat(chat_id)
+        result.append({
+            **info,
+            "title": chat.get("title", "") if chat else "",
+            "user_id": chat.get("user_id", "") if chat else "",
+            "total_cost": chat.get("total_cost", 0) if chat else 0,
+        })
+    return {"agents": result, "count": len(result)}
+
 
 @router.get("/api/admin/metrics")
 async def admin_metrics(request: Request):
@@ -1277,7 +1381,7 @@ async def rename_chat(chat_id: str, request: Request):
     chat = get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     body = await request.json()
     title = body.get("title", "")
     if title:
@@ -1292,7 +1396,7 @@ async def update_chat_model(chat_id: str, request: Request):
     chat = get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     body = await request.json()
     model = body.get("model", "")
     if model:
@@ -1420,7 +1524,7 @@ async def submit_feedback(chat_id: str, payload: FeedbackPayload, request: Reque
     chat = get_chat(chat_id)
     if not chat:
         raise HTTPException(404, "Chat not found")
-    _check_chat_ownership(chat, user_id)
+    _check_chat_ownership(chat, user_id, request)
     # 1. Store rating in DB if provided
     if payload.rating is not None:
         rating = max(1, min(5, payload.rating))

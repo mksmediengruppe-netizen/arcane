@@ -846,7 +846,7 @@ export default function Home() {
                   </AnimatePresence>
 
                   {/* Live executing indicator for non-sim chats */}
-                  {activeChat !== "c1" && (chat.status === "thinking" || chat.status === "executing" || chat.status === "searching") && (
+                  {activeChat !== "c1" && isRunning && (headerStatus === "thinking" || headerStatus === "executing" || headerStatus === "searching") && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -957,6 +957,8 @@ export default function Home() {
                   onArtifactConsumed={() => setPendingArtifact(null)}
                   chatStatus={chatStatus}
                   logs={chatsAPI.chatMeta[activeChat]?.logs}
+                  thinkingContent={chatsAPI.chatMeta[activeChat]?.thinkingContent}
+                  messages={messages}
                 />
               </div>
             </motion.div>

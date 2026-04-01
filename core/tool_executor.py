@@ -207,6 +207,9 @@ class ToolExecutor:
         )
 
         try:
+            # Strip 'brief' parameter — it's only for UI display, not for tool execution
+            if isinstance(arguments, dict):
+                arguments = {k: v for k, v in arguments.items() if k != "brief"}
             result = await handler(arguments, project_id=project_id, user_id=user_id)
             return str(result) if result is not None else "OK"
         except Exception as e:

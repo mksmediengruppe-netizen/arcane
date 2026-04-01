@@ -15,6 +15,7 @@ import { RightPanel } from "@/components/arcane/RightPanel";
 import { AdminDashboard } from "@/components/arcane/AdminDashboard";
 import { StatusBadge } from "@/components/arcane/StatusBadge";
 import { useResizablePanel } from "@/hooks/useResizablePanel";
+import { MiniPreview } from "@/components/arcane/MiniPreview";
 import { PlanFooter } from "@/components/arcane/PlanFooter";
 import { CommandPalette } from "@/components/arcane/CommandPalette";
 import { TakeoverBanner, TakeoverPanel, TakeoverButton } from "@/components/arcane/TakeoverMode";
@@ -366,7 +367,7 @@ export default function Home() {
   const { width: rightPanelWidth, isResizing, handleMouseDown: handlePanelResize } = useResizablePanel({
     defaultWidth: 360,
     minWidth: 280,
-    maxWidth: 700,
+    maxWidth: 900,
     side: "left",
   });
 
@@ -482,9 +483,23 @@ export default function Home() {
 
   const chat = allChats.find(c => c.id === activeChat) ?? allChats[0] ?? CHATS[0];
   const messages = chatMessages[activeChat] ?? [];
-  const currentSteps = useMemo(() => collectSteps(messages), [messages]);
-  const currentPlan = useMemo(() => extractPlan(messages), [messages]);
-  const completedStepsCount = useMemo(() => countCompletedSteps(messages), [messages]);
+  const stepsFromMessages = useMemo(() => collectSteps(messages), [messages]);
+  // Merge steps from SSE (chatMeta) with steps from messages — prefer chatMeta as it's more up-to-date
+  const metaSteps = chatsAPI.chatMeta[activeChat]?.steps ?? [];
+  const currentSteps = useMemo(() => {
+    if (metaSteps.length > 0) return metaSteps;
+    return stepsFromMessages;
+  }, [metaSteps, stepsFromMessages]);
+  const currentPlan = useMemo(() => {
+    const metaPlan = chatsAPI.chatMeta[activeChat]?.plan ?? [];
+    if (metaPlan.length > 0) return metaPlan;
+    return extractPlan(messages);
+  }, [messages, chatsAPI.chatMeta, activeChat]);
+  const completedStepsCount = useMemo(() => {
+    const metaCompleted = chatsAPI.chatMeta[activeChat]?.planCompleted ?? [];
+    if (metaCompleted.length > 0) return metaCompleted.length;
+    return countCompletedSteps(messages);
+  }, [messages, chatsAPI.chatMeta, activeChat]);
   const runningStep = useMemo(() => currentSteps.find(s => s.status === "running"), [currentSteps]);
 
   useEffect(() => {
@@ -521,9 +536,8 @@ export default function Home() {
     ? (realAgentStatus as AgentStatus)
     : chat.status;
   const isRunning = chatsAPI.isSending;
-  const activeMeta = chatsAPI.chatMeta[activeChat];
-  const currentTool = activeMeta?.currentTool || null;
-  const currentPhase = activeMeta?.currentPhase || null;
+  // chatStatus for RightPanel — includes backend status even when not streaming
+  const chatStatus = realAgentStatus || chat.status;
   const showTypingIndicator =
     (chatsAPI.isSending && messages.length > 0 && messages[messages.length - 1]?.role === "user");
 
@@ -797,6 +811,8 @@ export default function Home() {
                         isCompleted={chat.status === "completed"}
                         onEdit={handleMessageEdit}
                         onArtifactOpen={handleArtifactOpen}
+                        planCompleted={completedStepsCount}
+                        planActiveIndex={currentPlan.length > completedStepsCount ? completedStepsCount : undefined}
                       />
                     ))}
                   </AnimatePresence>
@@ -833,7 +849,7 @@ export default function Home() {
                   </AnimatePresence>
 
                   {/* Live executing indicator for non-sim chats */}
-                  {activeChat !== "c1" && (chat.status === "thinking" || chat.status === "executing" || chat.status === "searching") && (
+                  {activeChat !== "c1" && isRunning && (headerStatus === "thinking" || headerStatus === "executing" || headerStatus === "searching") && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -896,6 +912,21 @@ export default function Home() {
             )}
           </AnimatePresence>
 
+          {/* Mini preview above composer — shows current agent activity */}
+          {isRunning && (
+            <MiniPreview
+              currentTool={chatsAPI.chatMeta[activeChat]?.currentTool}
+              isRunning={isRunning}
+              planTitle={currentPlan.length > completedStepsCount ? currentPlan[completedStepsCount] : undefined}
+              planProgress={currentPlan.length > 0 ? `${completedStepsCount}/${currentPlan.length}` : undefined}
+              steps={(chatsAPI.chatMeta[activeChat]?.steps || []).map(s => ({ title: s.title, status: s.status, tool: s.tool }))}
+              completedCount={completedStepsCount}
+              totalCount={currentPlan.length || (chatsAPI.chatMeta[activeChat]?.steps || []).length}
+              plan={currentPlan}
+              onClick={() => { setRightPanelOpen(true); setRightPanelTab("live"); }}
+            />
+          )}
+
           <Composer onSend={handleSend} budgetExhausted={budgetExhausted} onAdminRefill={handleAdminRefill} />
         </div>
 
@@ -940,9 +971,13 @@ export default function Home() {
                   completedSteps={completedStepsCount}
                   activeStepTitle={runningStep ? `Выполняется: ${runningStep.title}` : undefined}
                   isRunning={isRunning}
-                  currentTool={currentTool}
+                  currentTool={chatsAPI.chatMeta[activeChat]?.currentTool}
                   pendingArtifact={pendingArtifact}
                   onArtifactConsumed={() => setPendingArtifact(null)}
+                  chatStatus={chatStatus}
+                  logs={chatsAPI.chatMeta[activeChat]?.logs}
+                  thinkingContent={chatsAPI.chatMeta[activeChat]?.thinkingContent}
+                  messages={messages}
                 />
               </div>
             </motion.div>
@@ -957,9 +992,9 @@ export default function Home() {
 
 function EmptyState({ onSend }: { onSend: (text: string) => void }) {
   const suggestions = [
-    "Установи Bitrix CMS на сервер",
+    "Создай лендинг для кофейни",
     "Сделай SEO аудит сайта",
-    "Настрой SSL сертификат",
+    "Настрой CI/CD для проекта",
     "Оптимизируй скорость загрузки",
   ];
 

@@ -141,6 +141,12 @@ class AgentLoop:
         self._user_id = user_id
         self._max_iterations = max_iterations
         self._max_consecutive_errors = max_consecutive_errors
+        # FIX: Define adaptive iteration limits for task complexity
+        self._adaptive_iteration_limits = {
+            "complex": 50,
+            "moderate": 30,
+            "simple": 15,
+        }
         self._tracker = get_usage_tracker()
 
         # State
@@ -1037,7 +1043,7 @@ class AgentLoop:
 
             # Resume the agent loop
             self._status = LoopStatus.RUNNING
-            self._max_iterations = min(self._max_iterations + 3, 50)  # FIX NEW-007: Raised hard cap
+            self._max_iterations = min(self._max_iterations + 5, 65)  # FIX: Raised hard cap for design judge
             logger.info(
                 f"Judge feedback injected (action={action}, finisher={'yes' if finisher_applied else 'no'}), "
                 f"resuming loop (+8 iterations, pass #{pass_number + 1})"
@@ -1259,10 +1265,12 @@ class AgentLoop:
             # FIX 1: Emit tool_executing. The emitter callback returns step_id
             # via a mutable container, since _emit_event creates a new dict.
             _step_id_container = {}
+            _tc_args = tool_call.arguments if isinstance(tool_call.arguments, dict) else {}
             _tool_event = {
                 "tool": tool_call.name,
                 "iteration": self._iteration,
                 "_step_id_container": _step_id_container,
+                "brief": _tc_args.get("brief", ""),
             }
             await self._emit_event("tool_executing", _tool_event)
             _step_id = _step_id_container.get("step_id")

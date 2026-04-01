@@ -210,7 +210,7 @@ export function Composer({ onSend, budgetExhausted = false, onAdminRefill, isRun
   return (
     <div
       className={cn(
-        "border-t border-[#E8E6E1] dark:border-[#2a2d3a] bg-white dark:bg-[#0f1117] px-4 pt-3 pb-3 transition-colors relative",
+        "bg-white dark:bg-[#0f1117] px-4 pt-2 pb-3 transition-colors relative",
         isDragging && "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-300"
       )}
       onDragOver={!budgetExhausted ? handleDragOver : undefined}
@@ -353,8 +353,8 @@ export function Composer({ onSend, budgetExhausted = false, onAdminRefill, isRun
         )}
       </AnimatePresence>
 
-      {/* Main input row */}
-      <div className="flex items-end gap-2">
+      {/* Main input row — Manus-style rounded container */}
+      <div className="flex items-end gap-2 border border-gray-200 dark:border-[#2a2d3a] rounded-2xl px-2 py-1 bg-white dark:bg-[#13151f] shadow-sm">
         {/* Attach */}
         <button
           onClick={() => fileInputRef.current?.click()}
@@ -416,25 +416,26 @@ export function Composer({ onSend, budgetExhausted = false, onAdminRefill, isRun
         </button>
       </div>
 
-      {/* Bottom row: capability badges + hint */}
-      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-        {CAPABILITIES.map(cap => (
-          <button
-            key={cap.id}
-            onClick={() => toggleCap(cap.id)}
-            title={activeCaps.has(cap.id) ? `${cap.label} включён` : `${cap.label} выключен`}
-            className={cn(
-              "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border transition-all",
-              activeCaps.has(cap.id)
-                ? cap.color
-                : "text-gray-300 bg-transparent border-gray-200 hover:border-gray-300 hover:text-gray-400"
-            )}
-          >
-            {cap.icon}
-            {cap.label}
-          </button>
-        ))}
-        <span className="ml-auto text-[10px] text-gray-300">Enter — отправить · Shift+Enter — новая строка</span>
+      {/* Bottom hint — Manus style minimal */}
+      <div className="mt-1.5 flex items-center justify-between px-2">
+        <div className="flex items-center gap-1">
+          {CAPABILITIES.map(cap => (
+            <button
+              key={cap.id}
+              onClick={() => toggleCap(cap.id)}
+              title={activeCaps.has(cap.id) ? `${cap.label} включён` : `${cap.label} выключен`}
+              className={cn(
+                "p-1.5 rounded-lg transition-all",
+                activeCaps.has(cap.id)
+                  ? "text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-[#1e2130]"
+                  : "text-gray-300 dark:text-gray-600 hover:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1e2130]"
+              )}
+            >
+              {cap.icon}
+            </button>
+          ))}
+        </div>
+        <span className="text-[10px] text-gray-300 dark:text-gray-600 select-none">Enter — отправить · Shift+Enter — новая строка</span>
       </div>
     </div>
   );
