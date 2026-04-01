@@ -240,40 +240,7 @@ function StarRating() {
   );
 }
 
-const FOLLOW_UPS = [
-  "Создать лендинг для нового продукта",
-  "Провести SEO аудит сайта",
-  "Настроить CI/CD пайплайн",
-  "Оптимизировать производительность сервера",
-];
 
-function SuggestedFollowUps() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
-      className="mt-3 space-y-1.5"
-    >
-      <div className="text-[11px] text-gray-400 font-medium uppercase tracking-wider px-0.5">
-        Suggested follow-ups
-      </div>
-      {FOLLOW_UPS.map((text, i) => (
-        <motion.button
-          key={i}
-          initial={{ opacity: 0, x: -8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2, delay: 0.1 + i * 0.05 }}
-          onClick={() => toast.info(`Задача: ${text}`)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-[#E8E6E1] bg-white hover:border-indigo-200 hover:bg-indigo-50/40 text-left text-xs text-gray-600 hover:text-gray-800 transition-all group"
-        >
-          <span className="flex-1">{text}</span>
-          <ArrowRight size={11} className="text-gray-300 group-hover:text-indigo-400 transition-colors shrink-0" />
-        </motion.button>
-      ))}
-    </motion.div>
-  );
-}
 
 // ─── Agent Message Reactions ─────────────────────────────────────────────────
 
@@ -664,7 +631,6 @@ export function ChatMessage({ message, activeStep, onStepClick, isLast, isComple
         {isLast && isCompleted && (
           <div className="mt-3 space-y-2">
             <StarRating />
-            <SuggestedFollowUps />
           </div>
         )}
 

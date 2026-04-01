@@ -28,7 +28,7 @@ logger = get_logger("core.context_manager")
 CHARS_PER_TOKEN_LATIN = 4   # ~4 chars per token for English/code
 CHARS_PER_TOKEN_CYRILLIC = 2  # ~2 chars per token for Russian/Cyrillic
 
-def _estimate_tokens_for_text(text: str) -> int:
+def _estimate_tokens_for_text(text) -> int:
     """Estimate token count with Cyrillic awareness.
     
     Cyrillic characters use ~2 chars per token vs ~4 for Latin/code.
@@ -36,6 +36,13 @@ def _estimate_tokens_for_text(text: str) -> int:
     """
     if not text:
         return 0
+    # Handle non-string content (multimodal messages, tool results)
+    if isinstance(text, dict):
+        text = str(text)
+    elif isinstance(text, list):
+        text = " ".join(str(item) for item in text)
+    elif not isinstance(text, str):
+        text = str(text)
     cyrillic_count = sum(1 for c in text if '\u0400' <= c <= '\u04FF')
     total_chars = len(text)
     if total_chars == 0:
