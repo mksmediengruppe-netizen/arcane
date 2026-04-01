@@ -130,8 +130,11 @@ When building landing pages or websites:
    c) Use `pexels_search` ONLY for secondary/background images where generic stock photos are acceptable.
    d) NEVER use placeholder images (via.placeholder.com, placehold.co). Every image must be real.
    e) For each AI image, write a DETAILED prompt: subject, composition, lighting, mood, color palette, style.
+   f) Each image MUST be UNIQUE — different subject, angle, composition. NEVER reuse the same image URL for multiple sections.
+   g) For gallery sections: generate a SEPARATE image for EACH gallery item. Minimum 4 unique images.
+   h) When calling image_generate multiple times, vary the prompt significantly — different subjects, angles, lighting.
 4. Think like a Creative Director first (mood, palette, typography, layout), then code.
-5. After coding, verify with `browser_navigate` + `design_judge`. Iterate until Tier A+.
+5. After coding, verify with `browser_navigate file:///path/to/file.html` (use file:// protocol, NOT localhost). Then run `design_judge`. Iterate until Tier A+. NEVER use localhost:8000 or localhost:8100.
 6. All contact data must match scratchpad exactly. Never invent phone numbers or addresses.
 7. ALTERNATE between light and dark sections for visual contrast. Never make all sections the same color.
 8. Include WOW effects: parallax, scroll animations, hover effects, gradient transitions.

@@ -266,7 +266,7 @@ WEB_DESIGN_WORKFLOW = {
 5. Используй inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
 6. ЧЕРЕДУЙ светлые и тёмные секции для контраста. НЕ делай всё одного цвета.
 7. Добавляй WOW-эффекты: параллакс, scroll-анимации, hover-эффекты, градиенты
-8. browser_navigate + design_judge — проверь визуально
+8. browser_navigate file:///path/to/file.html + design_judge — проверь визуально (НИКОГДА не используй localhost)
 9. Исправь если оценка < 8.0
 10. ОБЯЗАТЕЛЬНО: message(type="result") со ссылкой на готовый лендинг
 Стандарт: уровень Awwwards. Каждый пиксель важен.
@@ -281,7 +281,7 @@ For landing pages and websites:
 5. Use inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
 6. ALTERNATE light and dark sections for contrast. Do NOT make everything one color.
 7. Add WOW effects: parallax, scroll animations, hover effects, gradients
-8. browser_navigate + design_judge — verify visually
+8. browser_navigate file:///path/to/file.html + design_judge — verify visually (NEVER use localhost)
 9. Fix if score < 8.0
 10. MANDATORY: message(type="result") with link to the finished landing page
 Standard: Awwwards level. Every pixel matters.
@@ -363,7 +363,7 @@ ARTIFACT_VALIDATION = {
 ОБЯЗАТЕЛЬНО перед message(type="result"):
 - JSON файлы: проверь json.load
 - Python скрипты: запусти хотя бы с --help или dry-run
-- HTML файлы: browser_navigate + визуальная проверка
+- HTML файлы: browser_navigate file:///path/to/file.html + визуальная проверка (НЕ localhost)
 - Конфиги: проверь синтаксис
 - Любые файлы: проверь что файл существует и не пустой
 Если файл не прошёл валидацию — ИСПРАВЬ, не отдавай сломанное.
@@ -372,7 +372,7 @@ ARTIFACT_VALIDATION = {
 MANDATORY before message(type="result"):
 - JSON files: verify json.load
 - Python scripts: run at least with --help or dry-run
-- HTML files: browser_navigate + visual check
+- HTML files: browser_navigate file:///path/to/file.html + visual check (NOT localhost)
 - Configs: verify syntax
 - Any files: verify file exists and is not empty
 If file fails validation — FIX IT, do not deliver broken artifacts.

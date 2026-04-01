@@ -273,7 +273,8 @@ async def generate_ai_image(
     Falls back to Pexels if AI generation fails.
     """
     # Check cache first
-    cache_key = f"{query}:{style}:{size}"
+    import random as _rnd
+    cache_key = f"{query}:{style}:{size}:{_rnd.randint(0, 99999)}"  # Unique per call to prevent dedup
     if cache_key in _AI_IMAGE_CACHE:
         return _AI_IMAGE_CACHE[cache_key]
     
@@ -1044,7 +1045,7 @@ async def render_scene(
                 logger.info(f"Hero: AI image generated from prompt")
             else:
                 # Fallback to Pexels with short query
-                short_query = " ".join(hero_image_prompt.split()[:5])
+                short_query = " ".join(hero_image_prompt.split()[:8])
                 fetched = await fetch_pexels_image(short_query)
                 hero_media_url = fetched or "https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750"
         elif not hero_media_url or not hero_media_url.startswith("http"):
@@ -1206,7 +1207,7 @@ async def render_scene(
                         item["image"] = generated
                         logger.info(f"Gallery item {gi}: AI image generated")
                     else:
-                        short_q = " ".join(img_prompt.split()[:4])
+                        short_q = " ".join(img_prompt.split()[:8])
                         fallback = await fetch_pexels_image(short_q)
                         if fallback:
                             item["url"] = fallback

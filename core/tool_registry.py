@@ -255,6 +255,7 @@ TOOLS: list[dict] = [
         "- ALWAYS include protocol prefix (https:// or file://)\n"
         "- Use file:// to preview locally generated HTML files\n"
         "- After navigating, save key information to files — subsequent operations may lose visual context\n"
+        "- For local HTML files: use file:// protocol (e.g., file:///root/workspace/landing.html). NEVER use localhost:8000 or localhost:8100.\n"
         "</instructions>\n\n"
         "<recommended_usage>\n"
         "- Use to preview generated HTML files (file:///root/workspace/...)\n"
