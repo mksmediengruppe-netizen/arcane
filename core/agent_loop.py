@@ -676,14 +676,46 @@ class AgentLoop:
         #   2. FrontendDirector module is available
         #   3. Intent classifier confirms this is a web_design task
         # For non-design tasks (SSH, API, automation), this is completely skipped.
+        # PATCH-09: Classify intent and adjust max iterations for ALL tasks
+        _detected_intent = "moderate"
+        try:
+            from core.intent_classifier import classify_intent
+            _intent_result = await classify_intent(self._client, user_message)
+            _detected_intent_name = _intent_result.get("intent", "general")
+            # Map intent to complexity level
+            _intent_to_complexity = {
+                "web_design": "complex", "devops": "moderate", "coding": "moderate",
+                "automation": "moderate", "data": "simple", "research": "simple",
+                "media": "simple", "general": "simple",
+            }
+            _detected_intent = _intent_to_complexity.get(_detected_intent_name, "moderate")
+            # Lower complexity if confidence is low
+            _confidence = _intent_result.get("confidence", 0.5)
+            if _confidence < 0.6 and _detected_intent == "complex":
+                _detected_intent = "moderate"
+            self._adjust_max_iterations(user_message)  # keyword-based fallback
+            # Override with intent-based if we got a result
+            if _detected_intent in INTENT_COMPLEXITY:
+                self._max_iterations = INTENT_COMPLEXITY[_detected_intent]["max_iterations"]
+            logger.info(f"Intent-based iterations: intent={_detected_intent_name} confidence={_confidence:.2f} complexity={_detected_intent} max_iter={self._max_iterations}")
+        except Exception as e:
+            # Fallback to keyword-based
+            self._adjust_max_iterations(user_message)
+            logger.warning(f"Intent classifier failed ({e}), using keyword-based max_iterations={self._max_iterations}")
+
         _design_pipeline_ran = False
         if self._design_check and _director_available:
             try:
-                from core.intent_classifier import classify_intent
-                _intent_result = await classify_intent(self._client, user_message)
-                _is_design = _intent_result.get("intent") == "web_design"
+                _is_design = _intent_result.get("intent") == "web_design" if '_intent_result' in dir() else False
             except Exception:
                 _is_design = False
+            if not _is_design:
+                try:
+                    from core.intent_classifier import classify_intent
+                    _intent_result = await classify_intent(self._client, user_message)
+                    _is_design = _intent_result.get("intent") == "web_design"
+                except Exception:
+                    _is_design = False
             if _is_design:
                 await self._run_frontend_director(user_message)
                 _design_pipeline_ran = True
