@@ -57,5 +57,5 @@ log "ARCANE restarted"
 
 # Check health after 10 seconds
 sleep 10
-STATUS=$(curl -s http://localhost:8900/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['status'])" 2>/dev/null)
+STATUS=$(curl -s http://localhost:8100/api/health | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['status'])" 2>/dev/null)
 log "ARCANE health: $STATUS"

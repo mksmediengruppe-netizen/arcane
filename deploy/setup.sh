@@ -110,7 +110,7 @@ server {
     server_name arcaneai.ru www.arcaneai.ru;
     root /root/arcane/frontend/dist;
     location / { try_files $uri $uri/ /index.html; }
-    location /api/ { proxy_pass http://127.0.0.1:8900; }
+    location /api/ { proxy_pass http://127.0.0.1:8100; }
 }
 EOF
 ln -sf /etc/nginx/sites-available/arcane-temp /etc/nginx/sites-enabled/arcane
