@@ -700,22 +700,22 @@ TOOLS: list[dict] = [
     ]),
 
     _tool("image_generate",
-        "Generate images using AI (DALL-E 3 or FLUX). Returns file paths.\n\n"
+        "Generate images using AI (GPT-5 Image / GPT Image 1.5 / Nano Banana). Returns file paths.\n\n"
         "<instructions>\n"
         "- Use detailed, specific prompts for best results\n"
-        "- Specify style explicitly: photorealistic, illustration, flat, 3d, watercolor\n"
-        "- For landing pages, prefer pexels_search for photos — use this for custom illustrations/graphics\n"
+        "- Specify style explicitly: photorealistic, illustration, cinematic, 3d, editorial, hero\n"
+        "- For landing pages: ALWAYS use this for hero sections, banners, and key visuals. Use pexels_search ONLY for secondary images — use this for custom illustrations/graphics\n"
         "- Generated images are saved locally and can be embedded in HTML\n"
         "</instructions>\n\n"
         "<recommended_usage>\n"
-        "- Use for custom illustrations, icons, and graphics\n"
-        "- Use when stock photos don't fit the creative vision\n"
-        "- Use for logos, mascots, and unique visual elements\n"
+        "- Use for ALL hero sections, banners, and above-the-fold visuals\n"
+        "- Use for custom illustrations, product shots, and lifestyle imagery\n"
+        "- Use for logos, mascots, unique visual elements. Generate 3-5 images at project start\n"
         "</recommended_usage>",
     [
         _param("brief", "string", "A one-sentence preamble describing the purpose of this operation"),
         _param("prompt", "string", "Detailed description of the image to generate"),
-        _param("style", "string", "Style: photorealistic, illustration, flat, 3d, watercolor", required=False),
+        _param("style", "string", "Style: photorealistic, illustration, cinematic, 3d, editorial, hero, minimal", required=False),
         _param("size", "string", "Size: 1024x1024, 1792x1024, 1024x1792", required=False),
         _param("quality", "string", "Quality: standard or hd", required=False),
         _param("n", "integer", "Number of images (1-4)", required=False),

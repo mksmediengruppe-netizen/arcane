@@ -267,7 +267,7 @@ async def generate_ai_image(
     size: str = "1792x1024",
     project_dir: str = "/tmp/arcane_images",
 ) -> Optional[str]:
-    """Generate an AI image using Nano Banana 2 (Gemini Flash) via OpenRouter.
+    """Generate an AI image using GPT-5 Image Mini via OpenRouter (upgraded from Nano Banana).
     
     Returns a local file path or None on failure.
     Falls back to Pexels if AI generation fails.
@@ -286,7 +286,7 @@ async def generate_ai_image(
         
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
         if not api_key:
-            logger.warning("AI image gen: no OPENROUTER_API_KEY, falling back to Pexels")
+            logger.warning("AI image gen (GPT-5 Image Mini): no OPENROUTER_API_KEY, falling back to Pexels")
             return await fetch_pexels_image(query)
         
         # Style presets for better prompts
@@ -312,7 +312,7 @@ async def generate_ai_image(
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "google/gemini-2.5-flash-image",
+                    "model": "openai/gpt-5-image-mini",
                     "messages": [
                         {
                             "role": "user",

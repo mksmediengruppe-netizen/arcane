@@ -260,8 +260,8 @@ WEB_DESIGN_WORKFLOW = {
     "ru": """<web_design_workflow>
 Для лендингов и сайтов:
 1. Создай план (plan tool) с фазами: дизайн → код → проверка → деплой → результат
-2. pexels_search — найди реальные фото высокого качества
-3. Если пользователь просит премиум/WOW — используй image_generate для уникальных AI-изображений
+2. image_generate — СНАЧАЛА сгенерируй 3-5 уникальных AI-изображений для hero, баннеров и ключевых секций
+3. pexels_search — используй ТОЛЬКО для второстепенных/фоновых изображений, где подходят стоковые фото
 4. Пиши ВЕСЬ HTML в ОДНОМ file_write вызове. НЕ разбивай на части.
 5. Используй inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
 6. ЧЕРЕДУЙ светлые и тёмные секции для контраста. НЕ делай всё одного цвета.
@@ -275,8 +275,8 @@ WEB_DESIGN_WORKFLOW = {
     "en": """<web_design_workflow>
 For landing pages and websites:
 1. Create a plan (plan tool) with phases: design → code → review → deploy → result
-2. pexels_search — find high-quality real photos
-3. If user requests premium/WOW — use image_generate for unique AI images
+2. image_generate — FIRST generate 3-5 unique AI images for hero, banners, and key sections
+3. pexels_search — use ONLY for secondary/background images where stock photos are acceptable
 4. Write ALL HTML in ONE file_write call. Do NOT split into parts.
 5. Use inline CSS/JS, Google Fonts, GSAP ScrollTrigger, Lucide Icons
 6. ALTERNATE light and dark sections for contrast. Do NOT make everything one color.

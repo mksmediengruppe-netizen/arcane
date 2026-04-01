@@ -1,19 +1,24 @@
 """
-ARCANE Image Generation Worker
+ARCANE Image Generation Worker — v2 (Manus-level quality)
 
-Generates images using multiple providers:
-1. FLUX Schnell via OpenRouter (default) — fast, cheap ($0.003)
-2. OpenAI DALL-E 3 (fallback) — reliable ($0.04-0.12)
-3. Nano Banana 2 via OpenRouter (premium) — #1 Arena T2I ($0.005)
-4. Nano Banana Pro via OpenRouter (premium fallback) — #2-3 Arena ($0.02)
+Generates images using multiple providers with intelligent fallback:
+
+Premium tier (highest quality, for hero/banner/key visuals):
+  1. GPT-5 Image via OpenRouter — state-of-the-art, best prompt adherence
+  2. Nano Banana 2 (Gemini 3.1 Flash) via OpenRouter — fast, good quality
+  3. Nano Banana Pro (Gemini 3 Pro) via OpenRouter — reliable fallback
+
+Standard tier (good quality, cost-effective):
+  1. GPT-5 Image Mini via OpenRouter — great quality/cost ratio
+  2. Nano Banana (Gemini 2.5 Flash) via OpenRouter — cheapest
+  3. GPT Image 1.5 via OpenAI API — highest quality fallback (direct API)
 
 Supports:
-- Text-to-image generation
-- Style presets (photorealistic, illustration, 3d, pixel-art, etc.)
+- Text-to-image generation with detailed style presets
 - Multiple sizes (1024x1024, 1024x1792, 1792x1024)
 - Premium mode toggle for higher quality models
 - Automatic retry and fallback between providers
-- Result storage in MinIO/local filesystem
+- Result storage in local filesystem
 """
 
 from __future__ import annotations
@@ -35,24 +40,32 @@ logger = get_logger("workers.image_gen")
 
 # Style presets that modify the prompt for better results
 STYLE_PRESETS = {
-    "photorealistic": "Ultra-realistic photograph, 8K resolution, professional lighting, sharp focus",
-    "illustration": "Digital illustration, clean lines, vibrant colors, professional artwork",
-    "3d": "3D rendered image, high quality, realistic materials, professional lighting",
+    "photorealistic": "Ultra-realistic photograph, 8K resolution, professional lighting, sharp focus, shallow depth of field",
+    "illustration": "Digital illustration, clean lines, vibrant colors, professional artwork, detailed",
+    "3d": "3D rendered image, high quality, realistic materials, professional lighting, ray-traced",
     "pixel-art": "Pixel art style, retro game aesthetic, clean pixels",
-    "watercolor": "Watercolor painting style, soft edges, artistic brushstrokes",
-    "minimal": "Minimalist design, clean, simple, modern aesthetic",
-    "cinematic": "Cinematic shot, dramatic lighting, film grain, wide angle",
-    "anime": "Anime art style, high quality, detailed, vibrant",
-    "sketch": "Pencil sketch, detailed line work, artistic",
-    "logo": "Professional logo design, clean vector style, modern",
+    "watercolor": "Watercolor painting style, soft edges, artistic brushstrokes, delicate",
+    "minimal": "Minimalist design, clean, simple, modern aesthetic, white space",
+    "cinematic": "Cinematic shot, dramatic lighting, film grain, wide angle, anamorphic lens flare",
+    "anime": "Anime art style, high quality, detailed, vibrant, studio quality",
+    "sketch": "Pencil sketch, detailed line work, artistic, fine hatching",
+    "logo": "Professional logo design, clean vector style, modern, scalable",
+    "editorial": "Editorial photography, magazine quality, artistic composition, high fashion",
+    "hero": "Hero section image, dramatic, high-impact, professional, wide format, 4K",
+    "product": "Product photography, clean background, professional studio lighting, sharp detail",
 }
 
 # ── Premium model definitions ────────────────────────────────────────────────
-# Nano Banana models use the OpenRouter chat completions API with image output,
-# NOT the /images/generations endpoint. They accept text prompts and return
-# inline images in the response.
+# Models ordered by quality: GPT-5 Image > Nano Banana 2 > Nano Banana Pro
+# All use OpenRouter chat completions API with image output.
 
 PREMIUM_MODELS = [
+    {
+        "id": "openai/gpt-5-image",
+        "name": "GPT-5 Image",
+        "cost_per_image": 0.020,
+        "api_type": "chat",
+    },
     {
         "id": "google/gemini-3.1-flash-image-preview",
         "name": "Nano Banana 2",
@@ -67,7 +80,14 @@ PREMIUM_MODELS = [
     },
 ]
 
+# Standard models: cost-effective, good quality
 STANDARD_MODELS = [
+    {
+        "id": "openai/gpt-5-image-mini",
+        "name": "GPT-5 Image Mini",
+        "cost_per_image": 0.008,
+        "api_type": "chat",
+    },
     {
         "id": "google/gemini-2.5-flash-image",
         "name": "Nano Banana",
@@ -131,7 +151,7 @@ class ImageGenerator:
             n: Number of images to generate (1-4)
             project_id: Project ID for organizing outputs
             save_dir: Optional directory to save images
-            premium: If True, use premium models (Nano Banana 2 / Pro)
+            premium: If True, use premium models (GPT-5 Image / Nano Banana 2)
 
         Returns:
             dict with: success, images (list of paths), provider, cost, elapsed_seconds
@@ -140,11 +160,11 @@ class ImageGenerator:
         enhanced_prompt = self._enhance_prompt(prompt, style)
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-        # ── Premium path: Nano Banana 2 → Nano Banana Pro ────────────────
+        # ── Premium path: GPT-5 Image → Nano Banana 2 → Nano Banana Pro ──
         if premium and openrouter_key:
             for model_def in PREMIUM_MODELS:
                 try:
-                    result = await self._generate_nano_banana(
+                    result = await self._generate_via_openrouter(
                         enhanced_prompt, size, n, project_id, save_dir, model_def
                     )
                     if result["success"]:
@@ -162,12 +182,11 @@ class ImageGenerator:
             # If all premium models failed, fall through to standard path
             logger.warning("All premium models failed, falling back to standard")
 
-        # ── Standard path: Nano Banana → FLUX Schnell → DALL-E 3 ─────────
+        # ── Standard path: GPT-5 Image Mini → Nano Banana → GPT Image 1.5 ─
         if openrouter_key:
-            # Try Nano Banana (standard) first — cheapest and reliable
             for model_def in STANDARD_MODELS:
                 try:
-                    result = await self._generate_nano_banana(
+                    result = await self._generate_via_openrouter(
                         enhanced_prompt, size, n, project_id, save_dir, model_def
                     )
                     if result["success"]:
@@ -180,25 +199,15 @@ class ImageGenerator:
                     logger.warning(f"Standard {model_def['name']} generation failed: {e}")
                     continue
 
-            # Legacy fallback: FLUX Schnell
-            try:
-                result = await self._generate_flux(
-                    enhanced_prompt, size, n, project_id, save_dir
-                )
-                if result["success"]:
-                    return result
-            except Exception as e:
-                logger.warning(f"FLUX image generation failed: {e}")
-
-        # Last resort fallback: DALL-E 3 (requires direct OpenAI key)
+        # ── Last resort: GPT Image 1.5 via direct OpenAI API ─────────────
         try:
-            result = await self._generate_openai(
+            result = await self._generate_gpt_image(
                 enhanced_prompt, size, quality, n, project_id, save_dir
             )
             if result["success"]:
                 return result
         except Exception as e:
-            logger.warning(f"OpenAI DALL-E generation failed: {e}")
+            logger.warning(f"GPT Image 1.5 generation failed: {e}")
 
         return {
             "success": False,
@@ -216,9 +225,9 @@ class ImageGenerator:
             return f"{prompt}. Style: {style_instruction}"
         return prompt
 
-    # ── Premium: Nano Banana (Gemini image models via OpenRouter) ─────────
+    # ── OpenRouter: GPT-5 Image / Nano Banana (chat completions API) ─────
 
-    async def _generate_nano_banana(
+    async def _generate_via_openrouter(
         self,
         prompt: str,
         size: str,
@@ -227,10 +236,10 @@ class ImageGenerator:
         save_dir: Optional[str],
         model_def: dict,
     ) -> dict:
-        """Generate image using Nano Banana 2 or Pro via OpenRouter chat API.
+        """Generate image via OpenRouter chat completions API.
 
-        These Gemini-based models use the chat completions endpoint and return
-        images inline as base64 data in the response content.
+        Works with GPT-5 Image, Nano Banana 2/Pro, and other chat-based
+        image models that return images inline in the response content.
         """
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
         if not openrouter_key:
@@ -262,7 +271,7 @@ class ImageGenerator:
         async with httpx.AsyncClient(timeout=httpx.Timeout(180.0)) as client:
             for i in range(n):
                 try:
-                    # Nano Banana models use chat completions API
+                    # All models use chat completions API
                     resp = await client.post(
                         "https://openrouter.ai/api/v1/chat/completions",
                         headers={
@@ -338,10 +347,10 @@ class ImageGenerator:
     def _extract_image_from_chat_response(self, data: dict) -> Optional[bytes]:
         """Extract base64 image data from a chat completion response.
 
-        Gemini/Nano Banana models via OpenRouter return images in:
-        1. message.images[].image_url.url as data:image/png;base64,... (primary)
-        2. content list parts with inline_data or image_url type
-        3. content string with embedded base64
+        Supports multiple response formats:
+        1. message.images[].image_url.url as data:image/png;base64,... (OpenRouter primary)
+        2. content list parts with inline_data or image_url type (Gemini/GPT)
+        3. content string with embedded base64 (fallback)
         """
         choices = data.get("choices", [])
         if not choices:
@@ -349,7 +358,7 @@ class ImageGenerator:
 
         message = choices[0].get("message", {})
 
-        # Case 0 (PRIMARY): message.images[] — OpenRouter Nano Banana format
+        # Case 0 (PRIMARY): message.images[] — OpenRouter format
         images_list = message.get("images", [])
         if images_list:
             for img_entry in images_list:
@@ -427,9 +436,9 @@ class ImageGenerator:
 
         return None
 
-    # ── Standard: DALL-E 3 ────────────────────────────────────────────────
+    # ── GPT Image 1.5 via direct OpenAI API ──────────────────────────────
 
-    async def _generate_openai(
+    async def _generate_gpt_image(
         self,
         prompt: str,
         size: str,
@@ -438,168 +447,116 @@ class ImageGenerator:
         project_id: str,
         save_dir: Optional[str],
     ) -> dict:
-        """Generate image using OpenAI DALL-E 3."""
+        """Generate image using GPT Image 1.5 via direct OpenAI API.
+
+        GPT Image 1.5 is OpenAI's latest and most advanced image generation model.
+        It offers superior instruction following, text rendering, and detailed editing.
+        Replaces the deprecated DALL-E 3 as the primary OpenAI image model.
+        """
         client = await self._get_openai_client()
         start = time.monotonic()
 
-        # DALL-E 3 only supports n=1, so we loop
         images = []
         total_cost = 0.0
+
+        # GPT Image 1.5 size mapping (supports: 1024x1024, 1536x1024, 1024x1536, auto)
+        gpt_image_size = size
+        size_map = {
+            "1792x1024": "1536x1024",
+            "1024x1792": "1024x1536",
+        }
+        gpt_image_size = size_map.get(size, size)
+
+        # Quality mapping: "standard" → "medium", "hd" → "high"
+        gpt_quality = "high" if quality == "hd" else "medium"
 
         for i in range(n):
-            body = {
-                "model": "dall-e-3",
-                "prompt": prompt,
-                "n": 1,
-                "size": size,
-                "quality": quality,
-                "response_format": "b64_json",
-            }
+            try:
+                body = {
+                    "model": "gpt-image-1.5",
+                    "prompt": prompt,
+                    "n": 1,
+                    "size": gpt_image_size,
+                    "quality": gpt_quality,
+                }
 
-            resp = await client.post("/images/generations", json=body)
-            resp.raise_for_status()
-            data = resp.json()
+                resp = await client.post("/images/generations", json=body)
+                resp.raise_for_status()
+                data = resp.json()
 
-            for img_data in data.get("data", []):
-                b64 = img_data.get("b64_json", "")
-                revised_prompt = img_data.get("revised_prompt", prompt)
+                for img_data in data.get("data", []):
+                    b64 = img_data.get("b64_json", "")
+                    revised_prompt = img_data.get("revised_prompt", prompt)
+                    img_url = img_data.get("url", "")
 
-                if b64:
-                    # Save to file
-                    filename = f"img_{uuid.uuid4().hex[:8]}.png"
-                    output_dir = save_dir or os.path.join(
-                        self._output_dir, project_id or "default"
-                    )
-                    os.makedirs(output_dir, exist_ok=True)
-                    filepath = os.path.join(output_dir, filename)
+                    if b64:
+                        # Save base64 to file
+                        filename = f"gpt_img_{uuid.uuid4().hex[:8]}.png"
+                        output_dir = save_dir or os.path.join(
+                            self._output_dir, project_id or "default"
+                        )
+                        os.makedirs(output_dir, exist_ok=True)
+                        filepath = os.path.join(output_dir, filename)
 
-                    with open(filepath, "wb") as f:
-                        f.write(base64.b64decode(b64))
+                        with open(filepath, "wb") as f:
+                            f.write(base64.b64decode(b64))
 
-                    images.append({
-                        "path": filepath,
-                        "revised_prompt": revised_prompt,
-                        "size": size,
-                    })
+                        images.append({
+                            "path": filepath,
+                            "revised_prompt": revised_prompt,
+                            "size": size,
+                        })
+                    elif img_url:
+                        # Download from URL
+                        try:
+                            async with httpx.AsyncClient(timeout=30.0) as dl:
+                                dl_resp = await dl.get(img_url)
+                                dl_resp.raise_for_status()
 
-            # Cost calculation for DALL-E 3
-            if quality == "hd":
-                if size == "1024x1024":
-                    total_cost += 0.080
-                else:
-                    total_cost += 0.120
-            else:
-                if size == "1024x1024":
-                    total_cost += 0.040
-                else:
-                    total_cost += 0.080
+                                filename = f"gpt_img_{uuid.uuid4().hex[:8]}.png"
+                                output_dir = save_dir or os.path.join(
+                                    self._output_dir, project_id or "default"
+                                )
+                                os.makedirs(output_dir, exist_ok=True)
+                                filepath = os.path.join(output_dir, filename)
 
-        elapsed = time.monotonic() - start
+                                with open(filepath, "wb") as f:
+                                    f.write(dl_resp.content)
 
-        logger.info(
-            f"OpenAI DALL-E generated {len(images)} images, cost=${total_cost:.3f}"
-        )
+                                images.append({
+                                    "path": filepath,
+                                    "revised_prompt": revised_prompt,
+                                    "size": size,
+                                })
+                        except Exception as e:
+                            logger.warning(f"Failed to download GPT Image URL: {e}")
 
-        return {
-            "success": len(images) > 0,
-            "images": images,
-            "provider": "openai/dall-e-3",
-            "cost": total_cost,
-            "elapsed_seconds": round(elapsed, 2),
-        }
+                # Cost calculation for GPT Image 1.5
+                # Pricing: low=$0.02, medium=$0.07, high=$0.19 (1024x1024)
+                # Larger sizes: low=$0.04, medium=$0.14, high=$0.38
+                is_large = gpt_image_size != "1024x1024"
+                cost_table = {
+                    "low": 0.04 if is_large else 0.02,
+                    "medium": 0.14 if is_large else 0.07,
+                    "high": 0.38 if is_large else 0.19,
+                }
+                total_cost += cost_table.get(gpt_quality, 0.07)
 
-    # ── Standard: FLUX Schnell ────────────────────────────────────────────
-
-    async def _generate_flux(
-        self,
-        prompt: str,
-        size: str,
-        n: int,
-        project_id: str,
-        save_dir: Optional[str],
-    ) -> dict:
-        """Generate image using FLUX Schnell via OpenRouter.
-
-        C1: FLUX Schnell is a fast diffusion model available through OpenRouter's
-        image generation endpoint. Cost: ~$0.003 per image.
-        """
-        openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
-        if not openrouter_key:
-            return {
-                "success": False,
-                "images": [],
-                "provider": "flux-schnell",
-                "error": "OPENROUTER_API_KEY not configured",
-                "cost": 0.0,
-                "elapsed_seconds": 0,
-            }
-
-        start = time.monotonic()
-
-        # Parse size
-        try:
-            w, h = map(int, size.split("x"))
-        except ValueError:
-            w, h = 1024, 1024
-
-        images = []
-        total_cost = 0.0
-
-        async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
-            for i in range(n):
-                try:
-                    resp = await client.post(
-                        "https://openrouter.ai/api/v1/images/generations",
-                        headers={
-                            "Authorization": f"Bearer {openrouter_key}",
-                            "Content-Type": "application/json",
-                        },
-                        json={
-                            "model": "black-forest-labs/flux-schnell",
-                            "prompt": prompt,
-                            "n": 1,
-                            "size": f"{w}x{h}",
-                            "response_format": "b64_json",
-                        },
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-
-                    for img_data in data.get("data", []):
-                        b64 = img_data.get("b64_json", "")
-                        if b64:
-                            filename = f"flux_{uuid.uuid4().hex[:8]}.png"
-                            output_dir = save_dir or os.path.join(
-                                self._output_dir, project_id or "default"
-                            )
-                            os.makedirs(output_dir, exist_ok=True)
-                            filepath = os.path.join(output_dir, filename)
-
-                            with open(filepath, "wb") as f:
-                                f.write(base64.b64decode(b64))
-
-                            images.append({
-                                "path": filepath,
-                                "revised_prompt": prompt,
-                                "size": size,
-                            })
-                            total_cost += 0.003
-
-                except Exception as e:
-                    logger.warning(f"FLUX image {i+1}/{n} failed: {e}")
-                    continue
+            except Exception as e:
+                logger.warning(f"GPT Image 1.5 image {i+1}/{n} failed: {e}")
+                continue
 
         elapsed = time.monotonic() - start
 
         if images:
             logger.info(
-                f"FLUX Schnell generated {len(images)} images, cost=${total_cost:.3f}"
+                f"GPT Image 1.5 generated {len(images)} images, cost=${total_cost:.3f}"
             )
 
         return {
             "success": len(images) > 0,
             "images": images,
-            "provider": "flux-schnell",
+            "provider": "openai/gpt-image-1.5",
             "cost": total_cost,
             "elapsed_seconds": round(elapsed, 2),
         }
