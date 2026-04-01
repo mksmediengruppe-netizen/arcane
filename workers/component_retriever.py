@@ -321,6 +321,20 @@ TEMPLATE_CATALOG: tuple[TemplateMeta, ...] = (
         quality_tier=4,
         mobile_grade="A",
     ),
+    # ── FAQ ──
+    TemplateMeta(
+        scene_id="faq.accordion.v1",
+        file="faq_accordion.html",
+        section_type="faq",
+        niches=_UNIVERSAL,
+        styles=frozenset({"clean", "professional", "minimal", "editorial"}),
+        themes=_ALL_THEMES,
+        complexity=1,
+        slots=frozenset({"headline", "subheadline", "faq_items"}),
+        description="FAQ accordion section with smooth expand/collapse animation. Clean design with plus icon toggle. Universal for all niches.",
+        quality_tier=4,
+        mobile_grade="A",
+    ),
 )
 
 

@@ -1160,6 +1160,18 @@ PAGE_WRAPPER_START = """<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{title}</title>
   <meta name="description" content="{description}">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{title}">
+  <meta property="og:description" content="{description}">
+  <meta property="og:site_name" content="{brand_name}">
+  <meta property="og:locale" content="{lang}">
+  <meta property="og:image" content="{og_image}">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{title}">
+  <meta name="twitter:description" content="{description}">
+  <meta name="twitter:image" content="{og_image}">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1264,6 +1276,20 @@ PAGE_WRAPPER_START = """<!DOCTYPE html>
     @keyframes shimmer {{ 0% {{ background-position: -200% 0; }} 100% {{ background-position: 200% 0; }} }}
     .shimmer {{ background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%); background-size: 200% 100%; animation: shimmer 2s infinite; }}
   </style>
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {{
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "{title}",
+    "description": "{description}",
+    "publisher": {{
+      "@type": "Organization",
+      "name": "{brand_name}"
+    }},
+    "inLanguage": "{lang}"
+  }}
+  </script>
 </head>
 <body class="{body_class}">
 
@@ -1450,6 +1476,124 @@ PAGE_WRAPPER_END = """
     });
   });
 
+})();
+</script>
+
+<!-- Form Validation -->
+<script>
+(function() {
+  // Phone mask: +7 (___) ___-__-__
+  function phoneMask(input) {
+    input.addEventListener('input', function(e) {
+      let v = e.target.value.replace(/[^0-9]/g, '');
+      if (v.length === 0) { e.target.value = ''; return; }
+      if (v[0] === '8') v = '7' + v.slice(1);
+      if (v[0] !== '7') v = '7' + v;
+      let r = '+7';
+      if (v.length > 1) r += ' (' + v.slice(1, 4);
+      if (v.length > 4) r += ') ' + v.slice(4, 7);
+      if (v.length > 7) r += '-' + v.slice(7, 9);
+      if (v.length > 9) r += '-' + v.slice(9, 11);
+      e.target.value = r;
+    });
+    input.addEventListener('focus', function() {
+      if (!input.value) input.value = '+7 (';
+    });
+    input.addEventListener('blur', function() {
+      if (input.value === '+7 (' || input.value === '+7') input.value = '';
+    });
+  }
+
+  // Email validation
+  function isValidEmail(email) {
+    return /^[^ @]+@[^ @]+[.][^ @]+$/.test(email);
+  }
+
+  // Phone validation (11 digits for Russian numbers)
+  function isValidPhone(phone) {
+    return phone.replace(/[^0-9]/g, '').length >= 11;
+  }
+
+  // Show error
+  function showError(input, msg) {
+    clearError(input);
+    input.classList.add('ring-2', 'ring-red-500');
+    var err = document.createElement('span');
+    err.className = 'form-error text-red-500 text-xs mt-1 block';
+    err.textContent = msg;
+    input.parentNode.insertBefore(err, input.nextSibling);
+  }
+
+  // Clear error
+  function clearError(input) {
+    input.classList.remove('ring-2', 'ring-red-500');
+    var err = input.parentNode.querySelector('.form-error');
+    if (err) err.remove();
+  }
+
+  // Apply to all forms
+  document.querySelectorAll('form').forEach(function(form) {
+    // Apply phone mask to phone inputs
+    form.querySelectorAll('input[type="tel"], input[name*="phone"], input[placeholder*="___"]').forEach(phoneMask);
+
+    form.addEventListener('submit', function(e) {
+      var valid = true;
+
+      // Validate required fields
+      form.querySelectorAll('input[required], textarea[required]').forEach(function(input) {
+        clearError(input);
+        if (!input.value.trim()) {
+          showError(input, 'Обязательное поле');
+          valid = false;
+        }
+      });
+
+      // Validate email fields
+      form.querySelectorAll('input[type="email"]').forEach(function(input) {
+        if (input.value && !isValidEmail(input.value)) {
+          showError(input, 'Введите корректный email');
+          valid = false;
+        }
+      });
+
+      // Validate phone fields
+      form.querySelectorAll('input[type="tel"], input[name*="phone"], input[placeholder*="___"]').forEach(function(input) {
+        if (input.value && !isValidPhone(input.value)) {
+          showError(input, 'Введите полный номер телефона');
+          valid = false;
+        }
+      });
+
+      if (!valid) {
+        e.preventDefault();
+        // Scroll to first error
+        var firstErr = form.querySelector('.ring-red-500');
+        if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // Success: show confirmation instead of submitting (no backend)
+      e.preventDefault();
+      var btn = form.querySelector('button[type="submit"], button:not([type])');
+      if (btn) {
+        var origText = btn.textContent;
+        btn.textContent = '✓ Отправлено!';
+        btn.disabled = true;
+        btn.classList.add('opacity-70');
+        setTimeout(function() {
+          btn.textContent = origText;
+          btn.disabled = false;
+          btn.classList.remove('opacity-70');
+          form.reset();
+        }, 3000);
+      }
+    });
+
+    // Clear errors on input
+    form.querySelectorAll('input, textarea').forEach(function(input) {
+      input.addEventListener('input', function() { clearError(input); });
+    });
+  });
 })();
 </script>
 </body>
@@ -1930,7 +2074,28 @@ async def assemble_from_blueprint(
     
     logger.info(f"Blueprint assembly complete: {len(filled_html)} chars")
     return filled_html
-
+# ── FAQ Item Builder ──────────────────────────────────────────────
+def _build_faq_items_html(items: list, text_class: str, muted_class: str, border_class: str, accent_class: str) -> str:
+    """Build FAQ accordion items HTML from a list of {question, answer} dicts."""
+    html_parts = []
+    for item in items:
+        q = item.get("question", item.get("q", ""))
+        a = item.get("answer", item.get("a", ""))
+        if not q:
+            continue
+        html_parts.append(f"""
+      <div class="{border_class} border rounded-xl overflow-hidden">
+        <button data-faq-toggle class="w-full flex items-center justify-between px-6 py-5 text-left {text_class} hover:opacity-80 transition-opacity cursor-pointer">
+          <span class="font-semibold text-base md:text-lg pr-4">{q}</span>
+          <span data-faq-icon class="flex-shrink-0 {accent_class} text-2xl font-light select-none">+</span>
+        </button>
+        <div data-faq-content>
+          <div class="px-6 pb-5 {muted_class} text-sm md:text-base leading-relaxed">
+            {a}
+          </div>
+        </div>
+      </div>""")
+    return "\n".join(html_parts) if html_parts else ""
 
 async def assemble_page(
     page_plan: "PagePlan",  # type: ignore[name-defined]
@@ -2005,10 +2170,23 @@ async def assemble_page(
     nav_links_html = _build_nav_links(scene_ids, text_class)
 
     # Build page start
+    # Extract first image URL for OG image tag
+    og_image = ""
+    for sc in page_plan.scenes:
+        content = sc.content if hasattr(sc, "content") else (sc if isinstance(sc, dict) else {})
+        for key in ("image_url", "hero_image", "background_image", "bg_image"):
+            val = content.get(key, "") if isinstance(content, dict) else ""
+            if val and val.startswith("http"):
+                og_image = val
+                break
+        if og_image:
+            break
+
     page_html = PAGE_WRAPPER_START.format(
         lang=lang,
         title=page_title or brand_name,
         description=page_description or "",
+        og_image=og_image,
         body_class=body_class,
         nav_bg=nav_bg,
         border_class=border_class,

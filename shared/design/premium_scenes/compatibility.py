@@ -288,6 +288,22 @@ COMPATIBILITY_MATRIX: dict[str, CompatibilityProfile] = {
         },
         required_slots=["brand_name"],
     ),
+
+    # ── FAQ: Accordion ─────────────────────────────────────────
+    "faq.accordion.v1": CompatibilityProfile(
+        scene_id="faq.accordion.v1",
+        allowed={
+            "theme_pack": {"light_trust_v1", "warm_editorial_v1", "neutral_minimal_v1", "dark_premium_v1", "warm_gold_v1", "dark_elegant_v1", "dark_tech_v1"},
+            "heading_mode": {"serif_classic", "sans_executive", "display_bold"},
+            "body_mode": {"body_clean", "body_editorial"},
+            "button_style": {"filled_accent", "outline_clean", "pill_accent"},
+            "decorator_mode": {"none", "grain_soft"},
+            "spacing_mode": {"balanced_exec", "airy_editorial"},
+            "motion_profile": {"motion_off", "motion_minimal", "motion_subtle"},
+            "container_mode": {"container_wide", "container_standard"},
+        },
+        required_slots=["headline", "faq_items"],
+    ),
 }
 
 

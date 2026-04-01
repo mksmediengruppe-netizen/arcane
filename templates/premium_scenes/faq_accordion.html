@@ -1,0 +1,64 @@
+<!-- SCENE: faq.accordion.v1 -->
+<section class="relative {{BG}} {{SECTION_PADDING}} overflow-hidden" id="faq">
+  {{DECORATOR}}
+
+  <div class="{{CONTAINER_CLASS}} px-5 md:px-8 mx-auto relative z-10">
+    <!-- Section header -->
+    <div class="text-center max-w-2xl mx-auto mb-12 md:mb-16 {{REVEAL_CLASS}}">
+      <span class="inline-block text-xs font-medium {{ACCENT}} uppercase tracking-widest mb-4">FAQ</span>
+      <h2 class="{{HEADING_CLASS}} text-3xl md:text-4xl lg:text-5xl {{TEXT}} leading-tight mb-4">
+        {{HEADLINE}}
+      </h2>
+      <p class="{{BODY_CLASS}} {{MUTED}} text-base md:text-lg leading-relaxed">
+        {{SUBHEADLINE}}
+      </p>
+    </div>
+
+    <!-- Accordion items -->
+    <div class="max-w-3xl mx-auto space-y-3" id="faq-accordion">
+      {{FAQ_ITEMS}}
+    </div>
+  </div>
+
+  <!-- Accordion JS -->
+  <script>
+  (function() {
+    const acc = document.getElementById('faq-accordion');
+    if (!acc) return;
+    acc.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-faq-toggle]');
+      if (!btn) return;
+      const item = btn.parentElement;
+      const content = item.querySelector('[data-faq-content]');
+      const icon = btn.querySelector('[data-faq-icon]');
+      const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+      // Close all
+      acc.querySelectorAll('[data-faq-content]').forEach(function(c) {
+        c.style.maxHeight = '0px';
+        c.style.opacity = '0';
+      });
+      acc.querySelectorAll('[data-faq-icon]').forEach(function(ic) {
+        ic.style.transform = 'rotate(0deg)';
+      });
+      // Open clicked (if was closed)
+      if (!isOpen) {
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.opacity = '1';
+        icon.style.transform = 'rotate(45deg)';
+      }
+    });
+  })();
+  </script>
+
+  <style>
+    [data-faq-content] {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+    [data-faq-icon] {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</section>
