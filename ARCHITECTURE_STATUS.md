@@ -8,7 +8,7 @@ This document serves as the single source of truth for the current architectural
 | Component | Status | Description | Owner | Next Action |
 |---|---|---|---|---|
 | **Service Manager** | Implemented | `systemd` (`arcane.service`) manages the backend process. | Core Team | None |
-| **Port Configuration** | Implemented | Backend runs on port `8900` internally via `app.py`. | Core Team | None |
+| **Port Configuration** | Implemented | Backend runs on port `8100` internally via `app.py`. | Core Team | None |
 | **Reverse Proxy** | Implemented | Nginx handles SSL, routes `/api` to backend, and serves static files. | Core Team | None |
 | **Docker Workers** | Deprecated | Legacy execution model. No longer the primary path. | Core Team | Remove from documentation. |
 
